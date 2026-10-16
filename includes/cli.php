@@ -60,16 +60,19 @@ class Cloudflare_AI_Search_CLI
      * : Hide the box and the chat button on the cart and checkout.
      *
      * [--placeholder=<text>]
+     * : Text shown in the empty search box.
      *
      * [--color=<hex>]
-     * : Accent color, such as #1B3A32.
+     * : Accent color, such as #1B3A32. Passed through even though WP-CLI reserves a global color flag.
      *
      * [--theme=<auto|light|dark>]
+     * : auto, light, or dark.
      *
      * [--max-results=<n>]
      * : From 1 to 20.
      *
      * [--hide-branding=<0|1>]
+     * : Hide the Cloudflare name on the search box.
      *
      * ## EXAMPLES
      *
@@ -109,6 +112,19 @@ class Cloudflare_AI_Search_CLI
             'hide-branding' => 'hide_branding',
         );
         $bools = array('search_bar', 'modal', 'chat', 'hide_checkout', 'hide_branding');
+
+        // WP-CLI treats --color as its own global flag and drops --color=<hex>
+        // before this command sees it. The raw argv still has the value.
+        if (!array_key_exists('color', $assoc)) {
+            $argv = isset($_SERVER['argv']) && is_array($_SERVER['argv']) ? $_SERVER['argv'] : array();
+            foreach ($argv as $arg) {
+                $arg = (string) $arg;
+                if (strncmp($arg, '--color=', 8) === 0) {
+                    $assoc['color'] = substr($arg, 8);
+                    break;
+                }
+            }
+        }
 
         foreach ($map as $flag => $key) {
             if (!array_key_exists($flag, $assoc)) {
