@@ -1,0 +1,11 @@
+.cloudflare-ai-search-bar {
+  box-sizing: border-box;
+  max-width: 40rem;
+  margin: 1rem auto;
+  padding: 0 1rem;
+}
+
+.cloudflare-ai-search-bar search-bar-snippet {
+  display: block;
+  width: 100%;
+}
