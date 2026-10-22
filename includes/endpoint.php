@@ -57,7 +57,78 @@ function cloudflare_ai_search_snippet_src($url)
 }
 
 /**
- * Answer text and source snippets from a public AI Search /search response.
+ * Join a string or a list of {text} parts. Empty parts are dropped.
+ *
+ * @param mixed $content
+ * @return string
+ */
+function cloudflare_ai_search_part_text($content)
+{
+    if (is_string($content)) {
+        return trim($content);
+    }
+    if (!is_array($content)) {
+        return '';
+    }
+    $parts = array();
+    foreach ($content as $part) {
+        $text = '';
+        if (is_string($part)) {
+            $text = trim($part);
+        } elseif (is_array($part) && isset($part['text']) && is_string($part['text'])) {
+            $text = trim($part['text']);
+        }
+        if ($text !== '') {
+            $parts[] = $text;
+        }
+    }
+    return trim(implode("\n", $parts));
+}
+
+/**
+ * Source text from one search row. A chunk uses text. Older rows use content.
+ *
+ * @param mixed $row
+ * @return string
+ */
+function cloudflare_ai_search_row_text($row)
+{
+    if (!is_array($row)) {
+        return '';
+    }
+    if (isset($row['text']) && is_string($row['text'])) {
+        $text = trim($row['text']);
+        if ($text !== '') {
+            return $text;
+        }
+    }
+    if (!isset($row['content'])) {
+        return '';
+    }
+    return cloudflare_ai_search_part_text($row['content']);
+}
+
+/**
+ * Sentence from a chat body. The public endpoint puts it on choices.
+ * A wrapped body puts that same object under result.
+ *
+ * @param mixed $decoded
+ * @return string
+ */
+function cloudflare_ai_search_choice_text($decoded)
+{
+    if (!is_array($decoded) || !isset($decoded['choices'][0]['message']['content'])) {
+        return '';
+    }
+    return cloudflare_ai_search_part_text($decoded['choices'][0]['message']['content']);
+}
+
+/**
+ * Answer text and source snippets from a public AI Search response.
+ *
+ * /chat/completions returns the sentence in choices and the pages in chunks.
+ * /search returns result.chunks and no sentence. Older bodies used response
+ * and data.
  *
  * @param mixed $decoded
  * @return array{answer: string, sources: array<int, string>}
@@ -72,30 +143,39 @@ function cloudflare_ai_search_read_answer($decoded)
 
     if (isset($decoded['response']) && is_string($decoded['response'])) {
         $answer = $decoded['response'];
-    } elseif (isset($decoded['result']['response']) && is_string($decoded['result']['response'])) {
+    } elseif (
+        isset($decoded['result']) && is_array($decoded['result'])
+        && isset($decoded['result']['response']) && is_string($decoded['result']['response'])
+    ) {
         $answer = $decoded['result']['response'];
-    } elseif (isset($decoded['choices'][0]['message']['content']) && is_string($decoded['choices'][0]['message']['content'])) {
-        $answer = $decoded['choices'][0]['message']['content'];
+    } else {
+        $answer = cloudflare_ai_search_choice_text($decoded);
+        if ($answer === '' && isset($decoded['result']) && is_array($decoded['result'])) {
+            $answer = cloudflare_ai_search_choice_text($decoded['result']);
+        }
     }
 
-    $rows = array();
-    if (isset($decoded['data']) && is_array($decoded['data'])) {
-        $rows = $decoded['data'];
-    } elseif (isset($decoded['result']['data']) && is_array($decoded['result']['data'])) {
-        $rows = $decoded['result']['data'];
+    $result = array();
+    if (isset($decoded['result']) && is_array($decoded['result'])) {
+        $result = $decoded['result'];
     }
-    foreach ($rows as $row) {
-        if (!is_array($row)) {
-            continue;
+    $groups = array();
+    foreach (array('data', 'chunks') as $key) {
+        if (isset($decoded[$key]) && is_array($decoded[$key])) {
+            $groups[] = $decoded[$key];
         }
-        $text = '';
-        if (isset($row['content']) && is_string($row['content'])) {
-            $text = $row['content'];
-        } elseif (isset($row['text']) && is_string($row['text'])) {
-            $text = $row['text'];
+        if (isset($result[$key]) && is_array($result[$key])) {
+            $groups[] = $result[$key];
         }
-        $text = trim($text);
-        if ($text !== '') {
+    }
+    $seen = array();
+    foreach ($groups as $rows) {
+        foreach ($rows as $row) {
+            $text = cloudflare_ai_search_row_text($row);
+            if ($text === '' || isset($seen[$text])) {
+                continue;
+            }
+            $seen[$text] = true;
             $sources[] = $text;
         }
     }

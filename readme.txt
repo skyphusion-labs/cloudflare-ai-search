@@ -26,11 +26,11 @@ Example:
 
 `wp_ai_client_prompt( 'Write a product summary.' )->using_provider( 'cloudflare' );`
 
-`cloudflare_ai_provider_embeddings()` and `cloudflare_ai_search_query()` are available to other plugins. The search helper does not send a token.
+`cloudflare_ai_provider_embeddings()` and `cloudflare_ai_search_query()` are available to other plugins. The search helper posts to the public chat/completions path and does not send a token.
 
 == External services ==
 
-AI Search: the browser loads the snippet from the public address you paste, and the site posts questions to that address. No API token is sent.
+AI Search: the browser loads the snippet from the public address you paste. Checking the connection posts to /search. The search helper and the optional search-results answer post to /chat/completions. No API token is sent.
 
 Workers AI and AI Gateway: prompts, images, speech text, and embedding texts are sent to api.cloudflare.com, or to gateway.ai.cloudflare.com when a gateway id is set. The Connectors API token is sent as a bearer. The account id and gateway id are not secrets.
 
@@ -65,7 +65,7 @@ No. A caller that wants Cloudflare uses `using_provider('cloudflare')`.
 * Register a WordPress AI Client provider for Workers AI text, vision, images, and speech, through AI Gateway when a gateway id is set.
 * Link Workers AI, AI Gateway, AI Search, and Connectors from the settings screen.
 * Add embeddings and public AI Search helpers for WordPress and WooCommerce.
-* Optional AI Search answer above search results, off by default.
+* Optional AI Search answer above search results, off by default. The helper asks /chat/completions and reads chunks as sources. Search feeds and embeds do not print that answer.
 
 = 0.1.0 =
 * Settings screen, WP-CLI command, search box, keyboard search, and optional chat button.

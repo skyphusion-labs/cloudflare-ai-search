@@ -122,6 +122,40 @@ $search = cloudflare_ai_search_read_answer(array(
 expect('search answer', $search['answer'], 'Ships in two days.');
 expect('search sources', $search['sources'], array('Shipping page', 'Another page'));
 
+$public_chat = cloudflare_ai_search_read_answer(array(
+    'choices' => array(
+        array('message' => array('content' => 'Ships in two days.')),
+    ),
+    'chunks' => array(
+        array('text' => 'Shipping page'),
+        array('text' => 'Another page'),
+    ),
+));
+expect('chat answer', $public_chat['answer'], 'Ships in two days.');
+expect('chat sources', $public_chat['sources'], array('Shipping page', 'Another page'));
+
+$retrieved = cloudflare_ai_search_read_answer(array(
+    'success' => true,
+    'result' => array(
+        'chunks' => array(
+            array('text' => 'Beanie page'),
+            array('content' => array(array('text' => 'Care page'))),
+        ),
+    ),
+));
+expect('retrieved answer', $retrieved['answer'], '');
+expect('retrieved sources', $retrieved['sources'], array('Beanie page', 'Care page'));
+
+$parts = cloudflare_ai_search_read_answer(array(
+    'data' => array(
+        array('content' => array(
+            array('text' => 'First part'),
+            array('text' => 'Second part'),
+        )),
+    ),
+));
+expect('content parts', $parts['sources'], array("First part\nSecond part"));
+
 expect(
     'bearer redacted',
     cloudflare_ai_provider_error_message(401, array('errors' => array(array('message' => 'Bad Bearer stand-in-token')))),

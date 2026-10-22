@@ -86,7 +86,8 @@ function cloudflare_ai_provider_embeddings($texts)
 }
 
 /**
- * Ask the public AI Search endpoint. No API token. WooCommerce and WordPress search can call this.
+ * Ask the public AI Search chat endpoint. No API token.
+ * The connection check stays on /search, which returns pages and no sentence.
  *
  * @param string $question
  * @return array{answer: string, sources: array<int, string>}|WP_Error
@@ -98,7 +99,7 @@ function cloudflare_ai_search_query($question)
     if ($question === '' || $endpoint === '') {
         return new WP_Error('cloudflare_ai_search', 'Add the AI Search address before searching.');
     }
-    $response = wp_remote_post($endpoint . '/search', array(
+    $response = wp_remote_post($endpoint . '/chat/completions', array(
         'timeout' => 20,
         'headers' => array('Content-Type' => 'application/json'),
         'body' => wp_json_encode(array(

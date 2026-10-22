@@ -36,7 +36,7 @@ $vectors = cloudflare_ai_provider_embeddings( array( 'linen shirt' ) );
 $answer = cloudflare_ai_search_query( 'shipping times' );
 ```
 
-`cloudflare_ai_provider_embeddings()` returns a list of vectors, or a `WP_Error` whose message does not include the token. The model is `@cf/baai/bge-large-en-v1.5`. `cloudflare_ai_search_query()` posts to the public `{endpoint}/search` address and returns `answer` and `sources`, or a `WP_Error`. It does not send a token.
+`cloudflare_ai_provider_embeddings()` returns a list of vectors, or a `WP_Error` whose message does not include the token. The model is `@cf/baai/bge-large-en-v1.5`. `cloudflare_ai_search_query()` posts to the public `{endpoint}/chat/completions` address and returns `answer` and `sources`, or a `WP_Error`. It does not send a token. `{endpoint}/search` returns pages and no sentence. The connection check uses that path.
 
 WooCommerce code that calls `wp_ai_client_prompt()` can use the same provider. The shop already shows the search box when the public endpoint is set.
 
@@ -58,7 +58,7 @@ The chat button answers in a sentence and uses more of the Cloudflare allowance.
 
 ## External services
 
-- AI Search. The browser loads the snippet from the public address you paste. The site sends a question to `{endpoint}/search` when you check the connection, when code calls `cloudflare_ai_search_query()`, and when the search-results switch is on. No API token is sent.
+- AI Search. The browser loads the snippet from the public address you paste. The site sends a question to `{endpoint}/search` when you check the connection. `cloudflare_ai_search_query()` and the search-results switch send the question to `{endpoint}/chat/completions`. No API token is sent. Search feeds and embeds do not print the answer.
 - Workers AI and AI Gateway. Prompts, images, speech text, and embedding texts go to `api.cloudflare.com`, or to `gateway.ai.cloudflare.com` when a gateway id is set. The request uses the Connectors API token as a bearer. Account ids and gateway ids are not secrets. The token is the Connectors option `connectors_ai_cloudflare_api_key`, or `CLOUDFLARE_API_KEY` from the environment and then the PHP constant.
 
 ## Develop

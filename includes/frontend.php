@@ -155,7 +155,7 @@ function cloudflare_ai_search_render_lead($query = null)
     if ($query instanceof WP_Query && !$query->is_main_query()) {
         return;
     }
-    if (!is_search() || cloudflare_ai_search_quiet_page()) {
+    if (!is_search() || is_feed() || is_embed() || cloudflare_ai_search_quiet_page()) {
         return;
     }
     $settings = cloudflare_ai_search_settings();
