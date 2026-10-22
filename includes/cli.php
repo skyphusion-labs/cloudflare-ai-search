@@ -1,6 +1,6 @@
 <?php
 /**
- * wp cloudflare-ai-search. Same settings as Settings, then AI Search.
+ * wp cloudflare-ai-search. Same settings as Settings, then Cloudflare AI.
  */
 
 if (!defined('ABSPATH') && !defined('WP_CLI')) {
@@ -74,9 +74,19 @@ class Cloudflare_AI_Search_CLI
      * [--hide-branding=<0|1>]
      * : Hide the Cloudflare name on the search box.
      *
+     * [--account-id=<id>]
+     * : Cloudflare account ID, 32 hex characters. Not the API token.
+     *
+     * [--gateway-id=<slug>]
+     * : Optional AI Gateway slug. Blank calls Workers AI directly.
+     *
+     * [--lead-search=<0|1>]
+     * : Print an AI Search answer above WordPress and WooCommerce search results.
+     *
      * ## EXAMPLES
      *
      *     wp cloudflare-ai-search set --endpoint=https://abc.search.ai.cloudflare.com/ --color=#1B3A32 --chat=0
+     *     wp cloudflare-ai-search set --account-id=0123456789abcdef0123456789abcdef --gateway-id=store --lead-search=0
      *
      * @param array $args
      * @param array $assoc
@@ -96,6 +106,9 @@ class Cloudflare_AI_Search_CLI
             'color' => $current['color'],
             'theme' => $current['theme'],
             'max_results' => (string) $current['max_results'],
+            'account_id' => $current['account_id'],
+            'gateway_id' => $current['gateway_id'],
+            'lead_search' => $current['lead_search'] ? '1' : '',
         );
 
         $map = array(
@@ -110,8 +123,11 @@ class Cloudflare_AI_Search_CLI
             'theme' => 'theme',
             'max-results' => 'max_results',
             'hide-branding' => 'hide_branding',
+            'account-id' => 'account_id',
+            'gateway-id' => 'gateway_id',
+            'lead-search' => 'lead_search',
         );
-        $bools = array('search_bar', 'modal', 'chat', 'hide_checkout', 'hide_branding');
+        $bools = array('search_bar', 'modal', 'chat', 'hide_checkout', 'hide_branding', 'lead_search');
 
         // WP-CLI treats --color as its own global flag and drops --color=<hex>
         // before this command sees it. The raw argv still has the value.
@@ -148,10 +164,22 @@ class Cloudflare_AI_Search_CLI
                 WP_CLI::error('Color has to be a hex color such as #1B3A32.');
             }
         }
+        if (array_key_exists('account-id', $assoc)) {
+            $typed = trim((string) $assoc['account-id']);
+            if ($typed !== '' && cloudflare_ai_provider_account_id($typed) === '') {
+                WP_CLI::error('Account ID has to be 32 hex characters.');
+            }
+        }
+        if (array_key_exists('gateway-id', $assoc)) {
+            $typed = trim((string) $assoc['gateway-id']);
+            if ($typed !== '' && cloudflare_ai_provider_gateway_id($typed) === '') {
+                WP_CLI::error('Gateway ID has to be a slug of letters, numbers, hyphens, or underscores.');
+            }
+        }
 
         $clean = cloudflare_ai_search_sanitize($input);
         update_option('cloudflare_ai_search_settings', $clean);
-        WP_CLI::success('Saved. Settings, then AI Search, shows the same values.');
+        WP_CLI::success('Saved. Settings, then Cloudflare AI, shows the same values.');
     }
 }
 

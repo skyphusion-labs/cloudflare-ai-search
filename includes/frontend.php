@@ -21,12 +21,9 @@ function cloudflare_ai_search_ready()
 
 function cloudflare_ai_search_enqueue()
 {
-    if (!cloudflare_ai_search_ready()) {
-        return;
-    }
     $settings = cloudflare_ai_search_settings();
-    $src = cloudflare_ai_search_snippet_src($settings['endpoint']);
-    if ($src === '') {
+    $lead = !is_admin() && $settings['lead_search'] && $settings['endpoint'] !== '';
+    if (!cloudflare_ai_search_ready() && !$lead) {
         return;
     }
 
@@ -36,6 +33,13 @@ function cloudflare_ai_search_enqueue()
         array(),
         CLOUDFLARE_AI_SEARCH_VERSION
     );
+    if (!cloudflare_ai_search_ready()) {
+        return;
+    }
+    $src = cloudflare_ai_search_snippet_src($settings['endpoint']);
+    if ($src === '') {
+        return;
+    }
     wp_enqueue_script(
         'cloudflare-ai-search',
         $src,
@@ -132,3 +136,50 @@ function cloudflare_ai_search_shortcode()
     return '<div class="cloudflare-ai-search-bar">' . cloudflare_ai_search_component('search-bar-snippet', $settings) . '</div>';
 }
 add_shortcode('cloudflare_ai_search', 'cloudflare_ai_search_shortcode');
+
+/**
+ * Print one AI Search answer above the main search loop.
+ *
+ * WordPress search fires loop_start. WooCommerce product search also fires
+ * woocommerce_before_shop_loop. The flag stops the second hook from printing again.
+ * A transport error or an empty answer stays off the page.
+ *
+ * @param mixed $query
+ */
+function cloudflare_ai_search_render_lead($query = null)
+{
+    static $done = false;
+    if ($done || is_admin()) {
+        return;
+    }
+    if ($query instanceof WP_Query && !$query->is_main_query()) {
+        return;
+    }
+    if (!is_search() || cloudflare_ai_search_quiet_page()) {
+        return;
+    }
+    $settings = cloudflare_ai_search_settings();
+    if (!$settings['lead_search'] || $settings['endpoint'] === '') {
+        return;
+    }
+    $question = trim((string) get_search_query(false));
+    if ($question === '') {
+        return;
+    }
+
+    $done = true;
+    $result = cloudflare_ai_search_query($question);
+    if (is_wp_error($result) || !is_array($result)) {
+        return;
+    }
+    $answer = trim((string) $result['answer']);
+    if ($answer === '') {
+        return;
+    }
+
+    echo '<section class="cloudflare-ai-search-lead">';
+    echo '<p>' . esc_html($answer) . '</p>';
+    echo '</section>';
+}
+add_action('woocommerce_before_shop_loop', 'cloudflare_ai_search_render_lead', 5);
+add_action('loop_start', 'cloudflare_ai_search_render_lead', 5);

@@ -1,6 +1,6 @@
 <?php
 /**
- * Settings screen. Settings → AI Search.
+ * Settings screen. Settings, then Cloudflare AI. The page slug stays cloudflare-ai-search.
  */
 
 if (!defined('ABSPATH')) {
@@ -21,6 +21,9 @@ function cloudflare_ai_search_defaults()
         'theme' => 'auto',
         'max_results' => 8,
         'hide_branding' => false,
+        'account_id' => '',
+        'gateway_id' => '',
+        'lead_search' => false,
     );
 }
 
@@ -38,6 +41,9 @@ function cloudflare_ai_search_settings()
     $settings['chat'] = (bool) $settings['chat'];
     $settings['hide_checkout'] = (bool) $settings['hide_checkout'];
     $settings['hide_branding'] = (bool) $settings['hide_branding'];
+    $settings['lead_search'] = (bool) $settings['lead_search'];
+    $settings['account_id'] = cloudflare_ai_provider_account_id($settings['account_id']);
+    $settings['gateway_id'] = cloudflare_ai_provider_gateway_id($settings['gateway_id']);
     $settings['max_results'] = (int) $settings['max_results'];
     if ($settings['placement'] !== 'shortcode') {
         $settings['placement'] = 'top';
@@ -75,11 +81,20 @@ function cloudflare_ai_search_register_settings()
     );
     add_settings_field(
         'endpoint',
-        'Cloudflare address',
+        'AI Search address',
         'cloudflare_ai_search_field_endpoint',
         'cloudflare-ai-search',
         'connection'
     );
+
+    add_settings_section(
+        'workers',
+        'Workers AI and AI Gateway',
+        'cloudflare_ai_search_section_workers',
+        'cloudflare-ai-search'
+    );
+    add_settings_field('account_id', 'Account ID', 'cloudflare_ai_search_field_account_id', 'cloudflare-ai-search', 'workers');
+    add_settings_field('gateway_id', 'AI Gateway', 'cloudflare_ai_search_field_gateway_id', 'cloudflare-ai-search', 'workers');
 
     add_settings_section(
         'display',
@@ -92,6 +107,7 @@ function cloudflare_ai_search_register_settings()
     add_settings_field('chat', 'Chat button', 'cloudflare_ai_search_field_chat', 'cloudflare-ai-search', 'display');
     add_settings_field('placement', 'Where the search box goes', 'cloudflare_ai_search_field_placement', 'cloudflare-ai-search', 'display');
     add_settings_field('hide_checkout', 'Cart and checkout', 'cloudflare_ai_search_field_hide_checkout', 'cloudflare-ai-search', 'display');
+    add_settings_field('lead_search', 'Search results', 'cloudflare_ai_search_field_lead_search', 'cloudflare-ai-search', 'display');
 
     add_settings_section(
         'appearance',
@@ -162,17 +178,64 @@ function cloudflare_ai_search_sanitize($input)
     }
     $clean['max_results'] = $max;
 
+    $clean['lead_search'] = !empty($input['lead_search']);
+
+    $typed_account = isset($input['account_id']) ? trim((string) $input['account_id']) : '';
+    if ($typed_account === '') {
+        $clean['account_id'] = '';
+    } else {
+        $account = cloudflare_ai_provider_account_id($typed_account);
+        if ($account === '') {
+            if (function_exists('add_settings_error')) {
+                add_settings_error(
+                    'cloudflare_ai_search',
+                    'account_id',
+                    'Account ID has to be 32 hex characters. The previous account ID was kept.'
+                );
+            }
+            $clean['account_id'] = $old['account_id'];
+        } else {
+            $clean['account_id'] = $account;
+        }
+    }
+
+    $typed_gateway = isset($input['gateway_id']) ? trim((string) $input['gateway_id']) : '';
+    if ($typed_gateway === '') {
+        $clean['gateway_id'] = '';
+    } else {
+        $gateway = cloudflare_ai_provider_gateway_id($typed_gateway);
+        if ($gateway === '') {
+            if (function_exists('add_settings_error')) {
+                add_settings_error(
+                    'cloudflare_ai_search',
+                    'gateway_id',
+                    'Gateway ID has to be a slug of letters, numbers, hyphens, or underscores. The previous gateway ID was kept.'
+                );
+            }
+            $clean['gateway_id'] = $old['gateway_id'];
+        } else {
+            $clean['gateway_id'] = $gateway;
+        }
+    }
+
     return $clean;
 }
 
 function cloudflare_ai_search_section_connection()
 {
-    echo '<p>Paste the public address from Cloudflare. This site does not need an API token.</p>';
+    echo '<p>Paste the public AI Search address. The search box does not send an API token.</p>';
     echo '<ol>';
     echo '<li>In the Cloudflare dashboard, open AI Search and select the instance for this site.</li>';
     echo '<li>Open Settings, then Public endpoint, and turn the public endpoint on.</li>';
     echo '<li>Copy the address. It looks like <code>https://something.search.ai.cloudflare.com/</code>.</li>';
     echo '</ol>';
+}
+
+function cloudflare_ai_search_section_workers()
+{
+    $connectors = admin_url('options-connectors.php');
+    echo '<p>WordPress and WooCommerce call Workers AI through the AI Client. The provider id is <code>cloudflare</code>. The API token is saved in <a href="' . esc_url($connectors) . '">Settings, then Connectors</a>, or read from the <code>CLOUDFLARE_API_KEY</code> environment variable or constant. This screen does not store the token.</p>';
+    echo '<p>Leave the gateway blank to call Workers AI directly. Set a gateway id to send the same calls through AI Gateway. A model call does not replace another provider that is already configured. Call <code>using_provider(\'cloudflare\')</code> when the caller wants this one.</p>';
 }
 
 function cloudflare_ai_search_section_display()
@@ -282,11 +345,38 @@ function cloudflare_ai_search_field_hide_branding()
     echo '<label><input type="checkbox" name="cloudflare_ai_search_settings[hide_branding]" value="1" ' . checked($settings['hide_branding'], true, false) . ' /> Hide the Cloudflare name on the search box</label>';
 }
 
+function cloudflare_ai_search_field_account_id()
+{
+    $settings = cloudflare_ai_search_settings();
+    printf(
+        '<input type="text" class="regular-text code" name="cloudflare_ai_search_settings[account_id]" value="%s" maxlength="32" spellcheck="false" autocomplete="off" />',
+        esc_attr($settings['account_id'])
+    );
+    echo '<p class="description">32 hex characters from the Cloudflare dashboard. You can also set <code>CLOUDFLARE_ACCOUNT_ID</code>, or put the account id in front of the token on Connectors as <code>account-id:api-token</code>. Only the token half is sent.</p>';
+}
+
+function cloudflare_ai_search_field_gateway_id()
+{
+    $settings = cloudflare_ai_search_settings();
+    printf(
+        '<input type="text" class="regular-text code" name="cloudflare_ai_search_settings[gateway_id]" value="%s" maxlength="64" spellcheck="false" autocomplete="off" />',
+        esc_attr($settings['gateway_id'])
+    );
+    echo '<p class="description">Optional. A slug such as <code>store</code>. Blank sends Workers AI calls to api.cloudflare.com.</p>';
+}
+
+function cloudflare_ai_search_field_lead_search()
+{
+    $settings = cloudflare_ai_search_settings();
+    echo '<label><input type="checkbox" name="cloudflare_ai_search_settings[lead_search]" value="1" ' . checked($settings['lead_search'], true, false) . ' /> Show an AI Search answer above WordPress and WooCommerce search results</label>';
+    echo '<p class="description">Off until you turn it on. A failed request stays off the page. The cart and checkout stay quiet when that option is on.</p>';
+}
+
 function cloudflare_ai_search_add_menu()
 {
     add_options_page(
-        'AI Search',
-        'AI Search',
+        'Cloudflare AI',
+        'Cloudflare AI',
         'manage_options',
         'cloudflare-ai-search',
         'cloudflare_ai_search_render_page'
@@ -329,9 +419,27 @@ function cloudflare_ai_search_admin_notice()
         return;
     }
     $url = admin_url('options-general.php?page=cloudflare-ai-search');
-    echo '<div class="notice notice-warning"><p>AI Search is not connected yet. <a href="' . esc_url($url) . '">Add the Cloudflare address</a>.</p></div>';
+    echo '<div class="notice notice-warning"><p>Cloudflare AI search is not connected yet. <a href="' . esc_url($url) . '">Add the AI Search address</a>.</p></div>';
 }
 add_action('admin_notices', 'cloudflare_ai_search_admin_notice');
+
+function cloudflare_ai_search_render_product_links()
+{
+    $settings = cloudflare_ai_search_settings();
+    $links = cloudflare_ai_provider_links($settings['account_id']);
+    $products = array(
+        array('Workers AI', $links['workers_ai'], $links['workers_ai_docs']),
+        array('AI Gateway', $links['gateway'], $links['gateway_docs']),
+        array('AI Search', $links['search'], $links['search_docs']),
+    );
+    echo '<ul>';
+    foreach ($products as $product) {
+        echo '<li><a href="' . esc_url($product[1]) . '" target="_blank" rel="noopener noreferrer">' . esc_html($product[0]) . '</a>';
+        echo ' (<a href="' . esc_url($product[2]) . '" target="_blank" rel="noopener noreferrer">docs</a>)</li>';
+    }
+    echo '</ul>';
+    echo '<p>Gateway calls to Workers AI are documented at <a href="' . esc_url($links['gateway_workers_docs']) . '" target="_blank" rel="noopener noreferrer">AI Gateway for Workers AI</a>.</p>';
+}
 
 function cloudflare_ai_search_render_page()
 {
@@ -347,8 +455,9 @@ function cloudflare_ai_search_render_page()
     }
 
     echo '<div class="wrap">';
-    echo '<h1>AI Search</h1>';
-    echo '<p>Visitors can search this site in their own words. Cloudflare reads the public pages and answers from those pages.</p>';
+    echo '<h1>Cloudflare AI</h1>';
+    echo '<p>Workers AI, AI Gateway, and AI Search. Visitors can still search this site in their own words. WordPress and WooCommerce can call the same Cloudflare account for text, images, speech, and embeddings.</p>';
+    cloudflare_ai_search_render_product_links();
 
     if (is_array($check)) {
         $class = !empty($check['ok']) ? 'notice-success' : 'notice-error';

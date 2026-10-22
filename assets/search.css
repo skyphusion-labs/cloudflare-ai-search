@@ -9,3 +9,10 @@
   display: block;
   width: 100%;
 }
+
+.cloudflare-ai-search-lead {
+  box-sizing: border-box;
+  max-width: 40rem;
+  margin: 1rem auto;
+  padding: 0 1rem 1rem;
+}

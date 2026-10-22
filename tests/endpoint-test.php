@@ -4,14 +4,24 @@
  */
 
 require dirname(__DIR__) . '/includes/endpoint.php';
+require dirname(__DIR__) . '/includes/routes.php';
 
 $failures = 0;
+
+function shown($value)
+{
+    if (is_string($value)) {
+        return $value;
+    }
+    $json = json_encode($value);
+    return $json === false ? gettype($value) : $json;
+}
 
 function expect($label, $actual, $expected)
 {
     global $failures;
     if ($actual !== $expected) {
-        fwrite(STDERR, "FAIL {$label}\n  actual: {$actual}\n  expected: {$expected}\n");
+        fwrite(STDERR, "FAIL {$label}\n  actual: " . shown($actual) . "\n  expected: " . shown($expected) . "\n");
         $failures++;
         return;
     }
@@ -31,6 +41,8 @@ expect('query rejected', cloudflare_ai_search_normalize_endpoint('https://abc123
 expect('userinfo rejected', cloudflare_ai_search_normalize_endpoint('https://user:pass@abc123.search.ai.cloudflare.com'), '');
 expect('snippet src', cloudflare_ai_search_snippet_src($good), 'https://abc123.search.ai.cloudflare.com/assets/v0.0.25/search-snippet.es.js');
 expect('snippet src rejected', cloudflare_ai_search_snippet_src('https://example.com'), '');
+
+require __DIR__ . '/provider-test.php';
 
 if ($failures > 0) {
     fwrite(STDERR, "{$failures} failed\n");
