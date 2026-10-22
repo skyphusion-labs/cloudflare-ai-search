@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Cloudflare AI Search
+ * Plugin Name: Cloudflare Workers AI, Gateway, and Search
  * Plugin URI: https://github.com/skyphusion-labs/cloudflare-ai-search
- * Description: Search the site in ordinary language with Cloudflare AI Search. Connect it from Settings, then AI Search.
- * Version: 0.1.0
+ * Description: Workers AI, AI Gateway, and AI Search for WordPress and WooCommerce. Connect models from Settings, then Connectors, and search from Settings, then Cloudflare AI.
+ * Version: 0.2.0
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Skyphusion
@@ -17,13 +17,15 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CLOUDFLARE_AI_SEARCH_VERSION', '0.1.0');
+define('CLOUDFLARE_AI_SEARCH_VERSION', '0.2.0');
 define('CLOUDFLARE_AI_SEARCH_FILE', __FILE__);
 
 require_once __DIR__ . '/includes/endpoint.php';
+require_once __DIR__ . '/includes/routes.php';
 require_once __DIR__ . '/includes/settings.php';
 require_once __DIR__ . '/includes/frontend.php';
 require_once __DIR__ . '/includes/cli.php';
+require_once __DIR__ . '/includes/provider.php';
 
 function cloudflare_ai_search_activate()
 {

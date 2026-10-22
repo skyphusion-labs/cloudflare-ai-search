@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: endpoint allowlist
+      - name: plugin checks
         run: php tests/endpoint-test.php
 
   coverage:
@@ -28,5 +28,5 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: endpoint allowlist
+      - name: plugin checks
         run: php tests/endpoint-test.php
