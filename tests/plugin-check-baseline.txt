@@ -3,26 +3,39 @@
 # a listed one does not. Fix one, then DELETE its line (the script says FIXED).
 # Format: file<TAB>code<TAB>count. Never raise a count to make a run pass.
 #
-# Recorded 2026-10-23 against main 0b9cebb, which already includes #37.
-# Harness: plugin-check from wordpress.org latest, wp-cli 2.12.0, run through
-# tests/plugin-check.sh.
+# Recorded 2026-10-23 against main d11bf8a, which already includes #37 and
+# #50, merged with PR #48. Harness: plugin-check from wordpress.org latest,
+# wp-cli 2.12.0, run through tests/plugin-check.sh.
 #
 # =============================================================================
-# OWED: TextDomainMismatch, 70 calls across 7 files. Issue #38 clears it.
+# OWED: TextDomainMismatch, 71 calls across 7 files. Issue #38 clears it.
+#
+# THE TOTAL IS MEASURED ON THE MERGED ARTIFACT, and it is neither side's
+# number. PR #53's heading said 70: it accounted for includes/cli.php moving
+# 5 to 6 as its OWN doing, not knowing PR #48 had already made that exact move
+# for a different reason. main's heading said 67: it accounted for #48's call
+# and knew nothing of #53's four. Each side was internally consistent and both
+# were wrong once merged, so both calls are real, cli.php owes 7 rather than 6,
+# and the total is 71.
+#
+# THAT IS THE TRAP A BASELINE CONFLICT SETS. Taking either side wholesale
+# produces a file that passes its own self-sum check while describing an
+# artifact that does not exist, and no test can see it, because the thing that
+# would have caught it is this file.
 #
 # PR #53 (issue #5) adds FOUR calls: three rejection notices in settings.php
 # for colour, theme and placement, and one in cli.php telling the operator
-# that sanitize_hex_color() is unavailable. settings.php 38 to 41, cli.php 5
-# to 6. All four are correct calls on skyphusion-ai like the rest, same root
-# cause, and they clear with #38 together with them.
+# that sanitize_hex_color() is unavailable. settings.php 38 to 41. All four
+# are correct calls on skyphusion-ai like the rest, same root cause, and they
+# clear with #38 together with them.
 #
 # The prose below still says 66 in places. That is the count as MEASURED
-# before these calls existed, and it is left alone rather than rewritten,
-# because a measurement restated to match a later tree stops being a
-# measurement. The heading states the CURRENT set, so it moves.
+# before any of these calls existed, and it is left alone rather than
+# rewritten, because a measurement restated to match a later tree stops being
+# a measurement. The heading states the CURRENT set, so it moves.
 #
 # =============================================================================
-# THESE 66 CALLS ARE CORRECT. Do not change them. Every one passes the text
+# THESE 67 CALLS ARE CORRECT. Do not change them. Every one passes the text
 # domain the plugin header declares, skyphusion-ai, and tests/i18n-test.php
 # asserts precisely that on every call it finds through PHP's own tokenizer.
 # Read "mismatch" carefully: the calls match the HEADER, and what they
@@ -33,7 +46,7 @@
 # skyphusion-ai did NOT clear this sniff and could not have: Plugin Check
 # derives the expected slug from the plugin directory it is handed, which is
 # the archive prefix, still cloudflare-ai-search/. The repo rename has already
-# happened and all 66 findings survived it. Plugin Check states the comparison
+# happened and all 67 findings survived it. Plugin Check states the comparison
 # itself, as a separate warning on the main file:
 #
 #   textdomain_mismatch: The "Text Domain" header in the plugin file does not
@@ -55,13 +68,32 @@
 # the wordpress.org permalink will be skyphusion-ai and the text domain must
 # equal the permalink. README.md line 98 already says so ("That permalink is
 # permanent, and it must not begin with `cloudflare`. The text domain is
-# `skyphusion-ai`, the same as that permalink."). Changing 66 correct calls to
+# `skyphusion-ai`, the same as that permalink."). Changing 67 correct calls to
 # the wrong domain would clear this gate and break translation permanently,
 # because the strings would be extracted into a project nobody translates. It
 # would also fail tests/i18n-test.php, which asserts every call uses the
 # declared domain. The only thing that clears these lines is #38 renaming the
 # directory; delete all seven in that PR, together, not one at a time.
-includes/cli.php	WordPress.WP.I18n.TextDomainMismatch	6
+#
+# includes/cli.php moved 5 to 6 in PR #48 (issue #6), and 6 to 7 resolving
+# this merge. The sixth call is #48's deprecation notice warning that --color
+# is now an alias for --accent-color; the seventh is #53's unavailable-
+# validator error, which this merge moved onto the accent-color KEY because
+# #48's shim normalises --color into it and unsets color before the validation
+# runs. Fixing the fail-open on the old key, which is what #53 did in
+# isolation, would have left the live path unguarded. Both are correct calls
+# on skyphusion-ai, same root cause, and both clear with #38. The count is
+# raised here because the change that ADDS a call carries the move, which is
+# what keeps this file an exact description of one artifact rather than an
+# approximation of several.
+#
+# The measurement above predates both calls, so its figure is lower than the
+# heading. It is left as measured on purpose: it reports what was actually
+# run, and rewriting someone else's reading to match a later tree would turn a
+# measurement into an assertion. The difference is stated in words rather than
+# as a second number, because PR #55 lands an assertion that the owed total
+# appears on the heading and nowhere else.
+includes/cli.php	WordPress.WP.I18n.TextDomainMismatch	7
 includes/provider-models.php	WordPress.WP.I18n.TextDomainMismatch	8
 includes/provider-speech.php	WordPress.WP.I18n.TextDomainMismatch	2
 includes/provider.php	WordPress.WP.I18n.TextDomainMismatch	6
@@ -114,6 +146,6 @@ includes/stock.php	WordPress.WP.I18n.TextDomainMismatch	6
 #
 # cloudflare-ai-search.php  trademarked_term
 # The slug contains "cloudflare", which wordpress.org does not allow a slug
-# to begin with. Measured above: #38 clears this warning along with the 66
+# to begin with. Measured above: #38 clears this warning along with the
 # errors, so #38 is a wordpress.org submission prerequisite and not only
 # tidiness.

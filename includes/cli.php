@@ -13,6 +13,43 @@ function cloudflare_ai_search_cli_truthy($value)
     return in_array($value, array('1', 'true', 'yes', 'on'), true);
 }
 
+/**
+ * Resolve the accent colour from the parsed flags and the raw arguments.
+ *
+ * `--accent-color` is the DECLARED flag and WP-CLI parses it normally.
+ * `--color` shipped first and still works, but WP-CLI reserves `--color` as a
+ * global flag and consumes it before this command runs, so its value has to be
+ * recovered from the raw arguments. That recovery is the reason this issue
+ * exists; it is now a compatibility shim rather than the only way the feature
+ * works.
+ *
+ * PRECEDENCE IS EXPLICIT because both can be passed: the declared flag wins.
+ * Pure, and argv is a parameter rather than read from the superglobal, so the
+ * precedence is testable without a process.
+ *
+ * @param array $assoc Parsed associative arguments.
+ * @param array $argv  Raw process arguments, already sanitized.
+ * @return array{value: string|null, deprecated: bool}
+ */
+function cloudflare_ai_search_cli_accent_color($assoc, $argv)
+{
+    if (array_key_exists('accent-color', $assoc)) {
+        return array('value' => (string) $assoc['accent-color'], 'deprecated' => false);
+    }
+    // Reached only if WP-CLI ever stops reserving the global flag. Harmless
+    // and cheaper than discovering it the hard way.
+    if (array_key_exists('color', $assoc)) {
+        return array('value' => (string) $assoc['color'], 'deprecated' => true);
+    }
+    foreach ($argv as $arg) {
+        $arg = (string) $arg;
+        if (strncmp($arg, '--color=', 8) === 0) {
+            return array('value' => substr($arg, 8), 'deprecated' => true);
+        }
+    }
+    return array('value' => null, 'deprecated' => false);
+}
+
 class Cloudflare_AI_Search_CLI
 {
     /**
@@ -62,8 +99,13 @@ class Cloudflare_AI_Search_CLI
      * [--placeholder=<text>]
      * : Text shown in the empty search box.
      *
+     * [--accent-color=<hex>]
+     * : Accent color, such as #1B3A32.
+     *
      * [--color=<hex>]
-     * : Accent color, such as #1B3A32. Passed through even though WP-CLI reserves a global color flag.
+     * : Deprecated alias for --accent-color. WP-CLI reserves --color as a global
+     * : flag and consumes it, so the value is recovered from the raw arguments.
+     * : Kept working because it shipped. Prefer --accent-color.
      *
      * [--theme=<auto|light|dark>]
      * : auto, light, or dark.
@@ -85,7 +127,7 @@ class Cloudflare_AI_Search_CLI
      *
      * ## EXAMPLES
      *
-     *     wp cloudflare-ai-search set --endpoint=https://abc.search.ai.cloudflare.com/ --color=#1B3A32 --chat=0
+     *     wp cloudflare-ai-search set --endpoint=https://abc.search.ai.cloudflare.com/ --accent-color=#1B3A32 --chat=0
      *     wp cloudflare-ai-search set --account-id=0123456789abcdef0123456789abcdef --gateway-id=store --lead-search=0
      *
      * @param array $args
@@ -119,7 +161,7 @@ class Cloudflare_AI_Search_CLI
             'placement' => 'placement',
             'hide-checkout' => 'hide_checkout',
             'placeholder' => 'placeholder',
-            'color' => 'color',
+            'accent-color' => 'color',
             'theme' => 'theme',
             'max-results' => 'max_results',
             'hide-branding' => 'hide_branding',
@@ -129,20 +171,22 @@ class Cloudflare_AI_Search_CLI
         );
         $bools = array('search_bar', 'modal', 'chat', 'hide_checkout', 'hide_branding', 'lead_search');
 
-        // WP-CLI treats --color as its own global flag and drops --color=<hex>
-        // before this command sees it. The raw argv still has the value.
-        if (!array_key_exists('color', $assoc) && isset($_SERVER['argv']) && is_array($_SERVER['argv'])) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- array_keys only supplies indexes. Each value is unslashed and sanitized below.
+        $argv = array();
+        if (isset($_SERVER['argv']) && is_array($_SERVER['argv'])) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- array_keys only supplies indexes. Each value is unslashed and sanitized here.
             foreach (array_keys($_SERVER['argv']) as $index) {
-                if (!isset($_SERVER['argv'][$index])) {
-                    continue;
-                }
-                $arg = sanitize_text_field(wp_unslash($_SERVER['argv'][$index]));
-                if (strncmp($arg, '--color=', 8) === 0) {
-                    $assoc['color'] = substr($arg, 8);
-                    break;
+                if (isset($_SERVER['argv'][$index])) {
+                    $argv[] = sanitize_text_field(wp_unslash($_SERVER['argv'][$index]));
                 }
             }
+        }
+        $accent = cloudflare_ai_search_cli_accent_color($assoc, $argv);
+        if ($accent['value'] !== null) {
+            $assoc['accent-color'] = $accent['value'];
+            unset($assoc['color']);
+        }
+        if ($accent['deprecated']) {
+            WP_CLI::warning(__('--color is deprecated. Use --accent-color, which WP-CLI parses normally. --color still works.', 'skyphusion-ai'));
         }
 
         foreach ($map as $flag => $key) {
@@ -162,18 +206,25 @@ class Cloudflare_AI_Search_CLI
                 WP_CLI::error(__('That address has to be an https link ending in search.ai.cloudflare.com.', 'skyphusion-ai')); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- names the required host. It does not load a file.
             }
         }
-        if (array_key_exists('color', $assoc)) {
+        if (array_key_exists('accent-color', $assoc)) {
             // FAILS CLOSED. This used to read
             // `array_key_exists(...) && function_exists('sanitize_hex_color')`,
             // which skipped the whole check when the validator was missing and
             // let the command report "Saved." having changed nothing. A
             // validation that disappears with its validator permits exactly the
             // case nobody tested, so absence is an error rather than a pass.
+            //
+            // THE KEY IS `accent-color` AND NOT `color` (PR #48). The shim in
+            // cloudflare_ai_search_cli_accent_color() runs earlier, normalises
+            // `--color` into `accent-color` and unsets `color`, so by here the
+            // deprecated flag has already become the declared one. Fixing the
+            // fail-open on the OLD key, which is what this change originally
+            // did, would have left the live path unguarded.
             if (!function_exists('sanitize_hex_color')) {
-                WP_CLI::error(__('Cannot validate the color: sanitize_hex_color() is unavailable.', 'skyphusion-ai'));
+                WP_CLI::error(__('Cannot validate the accent color: sanitize_hex_color() is unavailable.', 'skyphusion-ai'));
             }
-            if (!sanitize_hex_color((string) $assoc['color'])) {
-                WP_CLI::error(__('Color has to be a hex color such as #1B3A32.', 'skyphusion-ai'));
+            if (!sanitize_hex_color((string) $assoc['accent-color'])) {
+                WP_CLI::error(__('Accent color has to be a hex color such as #1B3A32.', 'skyphusion-ai'));
             }
         }
         if (array_key_exists('account-id', $assoc)) {

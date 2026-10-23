@@ -72,19 +72,21 @@ Speech is `@cf/deepgram/aura-1` (MP3). Voices: angus, asteria, arcas, orion, orp
 
 ```bash
 wp cloudflare-ai-search status
-wp cloudflare-ai-search set --endpoint=https://abc.search.ai.cloudflare.com/ --color=#1B3A32 --chat=0
+wp cloudflare-ai-search set --endpoint=https://abc.search.ai.cloudflare.com/ --accent-color=#1B3A32 --chat=0
 wp cloudflare-ai-search set --account-id=0123456789abcdef0123456789abcdef --gateway-id=store --lead-search=0
 ```
 
 Flags:
 
-- `--endpoint`, `--placeholder`, `--color`, `--max-results`
+- `--endpoint`, `--placeholder`, `--accent-color`, `--max-results`
 - `--search-bar`, `--modal`, `--chat`, `--hide-checkout`, `--hide-branding`, `--lead-search`
 - `--placement`, which takes `top` or `shortcode`
 - `--theme`, which takes `auto`, `light`, or `dark`
 - `--account-id`, `--gateway-id`
 
-Use `0` or `1` for the on and off flags. Omitted flags stay as they are. The plugin reads `--color` from the raw arguments, because WP-CLI reserves that flag.
+Use `0` or `1` for the on and off flags. Omitted flags stay as they are.
+
+`--accent-color` sets the accent colour. `--color` is a deprecated alias and still works. WP-CLI reserves `--color` as a global flag and consumes it, so the plugin reads that one from the raw arguments. Pass `--accent-color` instead and WP-CLI parses it normally. Passing both uses `--accent-color`.
 
 The search box only lists pages. The chat button answers in a sentence. It uses more of the Cloudflare allowance. Leave `--chat=0` unless that cost is accepted.
 
