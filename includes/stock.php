@@ -202,12 +202,7 @@ function cloudflare_ai_search_stock_html($rows)
  */
 function cloudflare_ai_search_stock_plain($value)
 {
-    $text = (string) $value;
-    if (function_exists('wp_strip_all_tags')) {
-        $text = wp_strip_all_tags($text);
-    } else {
-        $text = strip_tags($text);
-    }
+    $text = wp_strip_all_tags((string) $value);
     $text = preg_replace('/\s+/u', ' ', $text);
     if (!is_string($text)) {
         return '';
@@ -301,9 +296,17 @@ function cloudflare_ai_search_stock_quantity($product, $managing)
  */
 function cloudflare_ai_search_stock_row_from_product($product, $include_attributes)
 {
+    /*
+     * A variation reports the string 'parent' when it defers stock to its
+     * parent, and its get_stock_quantity() then returns the parent's pooled
+     * figure. Coercing that string to true made every variation row claim the
+     * whole pool as its own. A pooled count is not this row's count, so the
+     * row keeps its status and drops the number.
+     */
     $managing = false;
     if (is_object($product) && method_exists($product, 'managing_stock')) {
-        $managing = $product->managing_stock() ? true : false;
+        $mode = $product->managing_stock();
+        $managing = $mode !== 'parent' && (bool) $mode;
     }
     $status = '';
     if (is_object($product) && method_exists($product, 'get_stock_status')) {

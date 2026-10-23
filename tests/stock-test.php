@@ -21,6 +21,24 @@ if (!function_exists('esc_html')) {
     }
 }
 
+/*
+ * The grouped reader strips markup from a child name through
+ * wp_strip_all_tags(). Production always has WordPress loaded there, so the
+ * plugin calls it directly; the harness supplies it instead of the plugin
+ * carrying a strip_tags() fallback that Plugin Check flags.
+ */
+if (!function_exists('wp_strip_all_tags')) {
+    function wp_strip_all_tags($text, $remove_breaks = false)
+    {
+        $text = preg_replace('@<(script|style)[^>]*?>.*?</\\1>@si', '', (string) $text);
+        $text = strip_tags($text);
+        if ($remove_breaks) {
+            $text = preg_replace('/[\r\n\t ]+/', ' ', $text);
+        }
+        return trim($text);
+    }
+}
+
 require_once dirname(__DIR__) . '/includes/stock.php';
 
 /* ---------- part one: English fallback, no WordPress ---------- */
@@ -539,3 +557,88 @@ $GLOBALS['cfai_stock_test_current'] = 20;
 $groupedHtml = cloudflare_ai_search_stock_html(cloudflare_ai_search_stock_grouped_rows($grouped));
 expect('grouped rows render two list items', substr_count($groupedHtml, '<li>'), 2);
 expect('grouped html names the child', strpos($groupedHtml, 'Beanie') !== false, true);
+
+/* ---------- part four: pooled vs own-level stock ---------- */
+/*
+ * Verified against WooCommerce trunk: WC_Product_Variation::get_manage_stock()
+ * returns true, false, or the STRING 'parent', and get_stock_quantity() then
+ * returns the parent's pooled figure. So a variation that defers stock to its
+ * parent must keep its status and drop the number, because the pool is not
+ * that row's count.
+ *
+ * Assertions are on the row arrays, so the translated label stubs defined
+ * earlier do not affect them.
+ */
+
+class Cfai_Stock_Test_Variation
+{
+    public $mode;
+    public $qty;
+    public $status;
+    public $sku;
+
+    public function __construct($mode, $qty, $status = 'instock', $sku = 'woo-var')
+    {
+        $this->mode = $mode;
+        $this->qty = $qty;
+        $this->status = $status;
+        $this->sku = $sku;
+    }
+
+    public function managing_stock()
+    {
+        return $this->mode;
+    }
+    public function get_stock_quantity()
+    {
+        return $this->qty;
+    }
+    public function get_stock_status()
+    {
+        return $this->status;
+    }
+    public function get_sku()
+    {
+        return $this->sku;
+    }
+    public function get_price()
+    {
+        return '';
+    }
+    public function get_attribute_summary()
+    {
+        return 'Color: Blue';
+    }
+    public function is_type($type)
+    {
+        return $type === 'variation';
+    }
+}
+
+/* Deferred to the parent: the pooled count must NOT be claimed by this row. */
+$pooled = cloudflare_ai_search_stock_row_from_product(new Cfai_Stock_Test_Variation('parent', 10), true);
+expect('pooled stock is not treated as managed', $pooled['managing_stock'], false);
+expect('pooled count is dropped from the row', $pooled['quantity'], null);
+expect('pooled row keeps its own status', $pooled['stock_status'], 'instock');
+expect('pooled row keeps its attributes', $pooled['attributes'], 'Color: Blue');
+
+/* The pooled figure must not reach the rendered text either. The row has no
+ * price, so the digits can only come from a count. */
+$pooledHtml = cloudflare_ai_search_stock_html(array($pooled));
+expect('pooled count absent from the rendered row', strpos($pooledHtml, '10') === false, true);
+
+/* Managed at its own level: the count is this variation's and is printed. */
+$own = cloudflare_ai_search_stock_row_from_product(new Cfai_Stock_Test_Variation(true, 3), true);
+expect('own-level stock is treated as managed', $own['managing_stock'], true);
+expect('own-level count is kept', $own['quantity'], 3);
+
+/* A truthy non-boolean that is not the parent sentinel still counts as
+ * managed, so the guard narrows on 'parent' alone and not on type. */
+$truthy = cloudflare_ai_search_stock_row_from_product(new Cfai_Stock_Test_Variation(1, 4), true);
+expect('a truthy mode other than parent still manages', $truthy['managing_stock'], true);
+expect('a truthy mode other than parent keeps its count', $truthy['quantity'], 4);
+
+/* An out-of-stock variation with a pooled parent keeps the negative answer. */
+$pooledOut = cloudflare_ai_search_stock_row_from_product(new Cfai_Stock_Test_Variation('parent', 10, 'outofstock'), true);
+expect('pooled out-of-stock row survives', $pooledOut['stock_status'], 'outofstock');
+expect('pooled out-of-stock row has no count', $pooledOut['quantity'], null);
