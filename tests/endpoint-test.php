@@ -1,7 +1,14 @@
 <?php
 /**
  * Run: php tests/endpoint-test.php
+ *
+ * ABSPATH is defined here so includes/endpoint.php and includes/routes.php
+ * can keep the direct-access guard. This is not a WordPress bootstrap.
+ * Do not remove the define. Without it those files exit before the checks run.
  */
+if (!defined('ABSPATH')) {
+    define('ABSPATH', __DIR__ . '/');
+}
 
 require dirname(__DIR__) . '/includes/endpoint.php';
 require dirname(__DIR__) . '/includes/routes.php';

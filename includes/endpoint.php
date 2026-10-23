@@ -1,7 +1,12 @@
 <?php
 /**
- * Public endpoint checks. This file does not load WordPress, so the tests can run it alone.
+ * Public endpoint checks. This file does not load WordPress.
+ * The standalone test defines ABSPATH before it loads this file.
  */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 if (!defined('CLOUDFLARE_AI_SEARCH_SNIPPET')) {
     define('CLOUDFLARE_AI_SEARCH_SNIPPET', '0.0.25');
