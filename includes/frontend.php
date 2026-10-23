@@ -205,8 +205,13 @@ function cloudflare_ai_search_render_lead($query = null, $from_block = false)
     }
 
     $done = true;
-    $result = cloudflare_ai_search_query($question);
-    if (is_wp_error($result) || !is_array($result)) {
+    // THROUGH THE GUARDED ENTRY POINT, never straight at the provider (#14).
+    // This is the only unauthenticated path to a billable generation, so the
+    // length cap, the cache and the call ceiling live between it and the
+    // network. Null means print nothing, which every refusal and every error
+    // already did.
+    $result = cloudflare_ai_search_lead_answer($question);
+    if ($result === null) {
         return;
     }
     $answer = trim((string) $result['answer']);

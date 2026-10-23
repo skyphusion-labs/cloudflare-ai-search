@@ -4,7 +4,7 @@ Tags: search, cloudflare, ai, woocommerce
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.0
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -66,28 +66,39 @@ No. A caller that wants Cloudflare uses `using_provider('cloudflare')`.
 
 == Changelog ==
 
+= 0.3.2 =
+
+* The search-results answer caps question length, caches answers, and limits calls per window.
+* A repeated question costs no model call and no worker time.
+* A failed or empty answer is cached for five minutes.
+
+= 0.3.1 =
+
+* The plugin documentation uses Simplified Technical English.
+* No code changed in this release.
+
 = 0.3.0 =
-* Product pages now print variation and stock text inside main. The server renders that HTML. AI Search can index it without browser rendering.
-* Each variation row names its attributes. It names its SKU when it has one. It also names its price and its stock status. Out of stock rows are kept.
+* Product pages print variation and stock text as server-rendered HTML inside main, so AI Search can index it without browser rendering.
+* Each variation row names its attributes, its SKU when it has one, its price and its stock status. Out of stock rows are kept.
 * A negative stock count prints its status without the number.
 * The number of variation rows is capped. The filter cloudflare_ai_search_stock_max_variations changes the cap.
-* Development files are now kept out of distributed archives. .distignore and .gitattributes export-ignore hold that list.
+* Development files are kept out of distributed archives by .distignore and by .gitattributes export-ignore.
 
 = 0.2.2 =
-* The text domain is now skyphusion-ai. It matches the permalink we request. Saved settings stay on the same option.
-* The plugin escapes the search snippet markup before it prints it. It also escapes Workers AI error text before it throws it.
-* A direct request for the WP-CLI file now exits.
+* The text domain is skyphusion-ai, matching the permalink to request. Saved settings stay on the same option.
+* Search snippet markup is escaped before it is printed. Workers AI error text is escaped before it is thrown.
+* A direct request for the WP-CLI file exits.
 
 = 0.2.1 =
-* The plugin name is now Skyphusion AI for Cloudflare. The author is Conrad Rockenhaus (skyphusion).
-* On a block theme, the search-results answer goes inside the results block. It stays inside the document.
-* Direct requests for the endpoint and route files now exit before they define anything.
+* The plugin name is Skyphusion AI for Cloudflare. The author is Conrad Rockenhaus (skyphusion).
+* On a block theme, the search-results answer is inserted in the results block so it stays inside the document.
+* Direct requests for the endpoint and route files exit before they define anything.
 
 = 0.2.0 =
-* Register a WordPress AI Client provider for Workers AI. It covers text, vision, images, and speech. Calls go through AI Gateway when you set a gateway id.
+* Register a WordPress AI Client provider for Workers AI text, vision, images, and speech, through AI Gateway when a gateway id is set.
 * Link Workers AI, AI Gateway, AI Search, and Connectors from the settings screen.
 * Add embeddings and public AI Search helpers for WordPress and WooCommerce.
-* Add an optional AI Search answer above search results, off by default. The helper asks /chat/completions and reads chunks as sources. Search feeds and embeds do not print that answer.
+* Optional AI Search answer above search results, off by default. The helper asks /chat/completions and reads chunks as sources. Search feeds and embeds do not print that answer.
 
 = 0.1.0 =
 * Settings screen, WP-CLI command, search box, keyboard search, and optional chat button.

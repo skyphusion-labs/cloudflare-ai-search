@@ -235,7 +235,7 @@ function cloudflare_ai_search_section_connection()
 function cloudflare_ai_search_section_workers()
 {
     $connectors = admin_url('options-connectors.php');
-    echo '<p>WordPress and WooCommerce call Workers AI through the AI Client. The provider id is <code>cloudflare</code>. The API token is saved in <a href="' . esc_url($connectors) . '">Settings, then Connectors</a>, or read from the <code>CLOUDFLARE_API_KEY</code> environment variable or constant. This screen does not store the token.</p>';
+    echo '<p>WordPress and WooCommerce call Workers AI through the AI Client. The provider id is <code>cloudflare</code>. The plugin reads the API token from the <code>CLOUDFLARE_API_KEY</code> environment variable first. It then tries a PHP constant of the same name. It falls back to the token saved in <a href="' . esc_url($connectors) . '">Settings, then Connectors</a>. A token in the environment or in a constant overrides the saved one. This screen does not store the token.</p>';
     echo '<p>Leave the gateway blank to call Workers AI directly. Set a gateway id to send the same calls through AI Gateway. A model call does not replace another provider that is already configured. Call <code>using_provider(\'cloudflare\')</code> when the caller wants this one.</p>';
 }
 
