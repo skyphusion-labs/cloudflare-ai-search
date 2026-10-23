@@ -11,4 +11,5 @@
 /.gitattributes
 /.gitignore
 /.github
+/CLAUDE.md
 /tests
