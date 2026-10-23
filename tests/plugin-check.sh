@@ -49,6 +49,14 @@ done
 # owed from the heading, so a stale heading is a wrong answer to the question
 # this file exists to answer.
 #
+# TWO ASSERTIONS, and the second is what keeps the first meaningful:
+#
+#   1. The OWED heading's total equals the sum of the data lines, and its file
+#      count equals the number of distinct files carrying that code.
+#   2. That total appears on NO other comment line. One derived number is
+#      safe; the same number restated in prose is what drifted, and it had
+#      reached eight places in this file before it was de-duplicated.
+#
 # Derived, never hardcoded: the total and the distinct-file count come from the
 # lines themselves. Runs before the harness because it needs no network and no
 # WordPress, so a self-contradicting baseline fails in about 30ms.
@@ -57,18 +65,32 @@ done
 # M files") and only lines whose code ENDS with that family are counted, so a
 # future baseline carrying a second code does not break the arithmetic.
 #
+# Assertion 2 checks the TOTAL only, not the per-file counts, and that is a
+# measured decision rather than laziness. With issue references excluded, the
+# per-file counts on main appear in 0 comment lines each except "2", which
+# collides with "wp-cli 2.12.0" and "WordPress 2.9"; and a legitimate history
+# note such as "includes/cli.php moved 5 to 6 in PR #48" states per-file
+# counts on purpose. Checking those would reject correct prose, and a guard
+# that cries wolf is a guard someone disables. The total is the one that
+# drifted and the one worth enforcing.
+#
+# A match preceded by "#" is ignored, because "#38" is an issue reference and
+# not a count. That exclusion is load-bearing: without it, seven lines here
+# would false-positive the day the total happens to equal an issue number.
+#
 # FLOOR, and it is the part that stops this guard having the disease it cures:
 # a heading claiming 0, or a heading no data line matches, FAILS rather than
 # satisfying 0 == 0. A guard that passes on an empty input is not a guard.
 #
 # Each message is ONE line on purpose. The awk SOURCE wraps with backslashes;
 # the printed text never does. A wrapped diagnostic cannot be grepped, and its
-# tail gets orphaned from its head by the deprecation noise wp-cli interleaves.
+# tail gets orphaned from its head by the noise wp-cli interleaves into stderr.
 check_baseline_self_consistency() {
     [ -f "$BASELINE" ] || cannot "baseline $BASELINE not found"
     awk -F'\t' '
         function say(s) { print "plugin-check: " s > "/dev/stderr" }
         /^# OWED:/ {
+            headings++
             if (match($0, /OWED: [A-Za-z0-9._]+, [0-9]+ calls across [0-9]+ files/)) {
                 split(substr($0, RSTART, RLENGTH), p, /[ ,]+/)
                 hcode = p[2]; hcalls = p[3] + 0; hfiles = p[6] + 0
@@ -80,7 +102,7 @@ check_baseline_self_consistency() {
             }
             next
         }
-        /^#/ { next }
+        /^#/ { cl[++nc] = $0; cn[nc] = FNR; next }
         $0 ~ /^[ \t]*$/ { next }
         NF == 3 {
             lines++
@@ -97,6 +119,10 @@ check_baseline_self_consistency() {
             if (!seen) {
                 say("baseline has no OWED: heading, so the self-sum check did not apply.")
                 exit 0
+            }
+            if (headings > 1) {
+                say("BASELINE SELF-CHECK FAILED: " headings " OWED: headings found; expected exactly one.")
+                exit 1
             }
             if (hcalls < 1) {
                 say("BASELINE SELF-CHECK FAILED: the OWED heading claims " hcalls \
@@ -121,8 +147,21 @@ check_baseline_self_consistency() {
                 say("Fix whichever side is wrong; the data lines are what the gate enforces.")
                 exit 1
             }
+            re = "(^|[^0-9#])" sum + 0 "([^0-9]|$)"
+            dup = 0
+            for (i = 1; i <= nc; i++) {
+                if (cl[i] ~ re) {
+                    say("BASELINE SELF-CHECK FAILED: the total " sum + 0 " is restated in prose at line " cn[i] ".")
+                    say("  " cl[i])
+                    dup++
+                }
+            }
+            if (dup > 0) {
+                say("The total belongs on the OWED: heading alone, where it is checked. Reword the line(s) above.")
+                exit 1
+            }
             say("baseline agrees with itself: " hcalls " " hcode " calls across " \
-                hfiles " files, summed from " matched + 0 " data line(s).")
+                hfiles " files, summed from " matched + 0 " data line(s), stated once.")
         }
     ' "$BASELINE"
     return $?
