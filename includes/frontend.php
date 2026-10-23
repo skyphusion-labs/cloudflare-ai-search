@@ -36,6 +36,20 @@ function cloudflare_ai_search_enqueue()
     if (!cloudflare_ai_search_ready()) {
         return;
     }
+    // THE ONE REAL OFFLOAD, and the Plugin Check sniff cannot see it (#16).
+    // This enqueues EXECUTABLE JavaScript from a third-party host. The host
+    // arrives from the database and the only literals in the source are a
+    // path fragment and a constant, so a sniff looking for a remote URL
+    // literal matches nothing here. A clean report on that sniff therefore
+    // says the sniff is blind, not that the condition is absent.
+    //
+    // NO `phpcs:ignore` BELONGS HERE. The eight annotations elsewhere in this
+    // plugin are on dashboard and docs hyperlinks, which is the harmless
+    // case. Annotating this one would claim a sniff had examined it.
+    //
+    // The position is published in `readme.txt` under `== External services ==`
+    // and `tests/external-services-test.php` keeps that paragraph true,
+    // including that it names the build this constant pins.
     $src = cloudflare_ai_search_snippet_src($settings['endpoint']);
     if ($src === '') {
         return;
