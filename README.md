@@ -1,6 +1,6 @@
 # Skyphusion AI for Cloudflare
 
-WordPress plugin for [Workers AI](https://developers.cloudflare.com/workers-ai/), [AI Gateway](https://developers.cloudflare.com/ai-gateway/), and [AI Search](https://developers.cloudflare.com/ai-search/).
+WordPress plugin for Cloudflare® [Workers AI](https://developers.cloudflare.com/workers-ai/), [AI Gateway](https://developers.cloudflare.com/ai-gateway/), and [AI Search](https://developers.cloudflare.com/ai-search/).
 
 Visitors get a search box. They can also open the keyboard search with Ctrl+K or Command+K. You can turn on a chat button as well. You connect search from **Settings, then Skyphusion AI**. You can set the same options with WP-CLI.
 
@@ -126,3 +126,7 @@ Keep the two lists in step. To check what a build would contain:
 git archive --format=zip --prefix=cloudflare-ai-search/ HEAD | tar -tf - 2>/dev/null || \
   git archive --format=tar --prefix=cloudflare-ai-search/ HEAD | tar -tf -
 ```
+
+## Trademarks
+
+Cloudflare, the Cloudflare logo, and Cloudflare Workers are trademarks and/or registered trademarks of Cloudflare, Inc. in the United States and other jurisdictions. This plugin is an independent work. Cloudflare, Inc. does not sponsor or endorse it. WordPress and WooCommerce are trademarks of their respective owners.
