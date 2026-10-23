@@ -122,6 +122,93 @@ function cloudflare_ai_search_query($question)
     return cloudflare_ai_search_read_answer($decoded);
 }
 
+/**
+ * THE GUARDED ENTRY POINT for the one unauthenticated path to a billable
+ * call (issue #14). The pure halves of these guards live in `routes.php`
+ * beside the other pure helpers, where the test harness already loads them
+ * and can drive them with no WordPress at all.
+ */
+
+/**
+ * Record one generation call and say whether it was allowed.
+ *
+ * The counter and its window start live in one transient, so the window
+ * cannot drift apart from the count it bounds.
+ *
+ * @return bool
+ */
+function cloudflare_ai_search_lead_take_slot()
+{
+    if (!function_exists('get_transient') || !function_exists('set_transient')) {
+        return true;
+    }
+    $limit = cloudflare_ai_search_lead_ceiling();
+    $key = 'cfais_lead_calls';
+    $state = get_transient($key);
+    $now = time();
+    if (!is_array($state) || !isset($state['count'], $state['start'])) {
+        $state = array('count' => 0, 'start' => $now);
+    }
+    if (($now - (int) $state['start']) >= $limit['window']) {
+        $state = array('count' => 0, 'start' => $now);
+    }
+    if ((int) $state['count'] >= $limit['calls']) {
+        return false;
+    }
+    $state['count'] = (int) $state['count'] + 1;
+    set_transient($key, $state, $limit['window']);
+    return true;
+}
+
+/**
+ * The guarded entry point the search page uses.
+ *
+ * Returns the same shape as `cloudflare_ai_search_query()` on success, and
+ * null whenever nothing should be printed. Null rather than WP_Error because
+ * every refusal here is deliberate and silent, and a caller that cannot tell
+ * them apart cannot accidentally surface one.
+ *
+ * @param string $question
+ * @return array{answer: string, sources: array<int, string>}|null
+ */
+function cloudflare_ai_search_lead_answer($question)
+{
+    $question = trim((string) $question);
+    if ($question === '' || cloudflare_ai_search_lead_too_long($question)) {
+        return null;
+    }
+    $key = cloudflare_ai_search_lead_cache_key($question);
+    $have_cache = function_exists('get_transient') && function_exists('set_transient');
+    if ($have_cache) {
+        $cached = get_transient($key);
+        if (is_array($cached) && isset($cached['answer'])) {
+            return $cached;
+        }
+        // A cached MISS is still a cache entry. Without it a question the
+        // model answers emptily is re-asked, and paid for, on every view.
+        if ($cached === 'none') {
+            return null;
+        }
+    }
+    if (!cloudflare_ai_search_lead_take_slot()) {
+        return null;
+    }
+    $result = cloudflare_ai_search_query($question);
+    if (is_wp_error($result) || !is_array($result) || trim((string) $result['answer']) === '') {
+        if ($have_cache) {
+            // Short, because an endpoint that is down should recover quickly,
+            // but long enough that a failing endpoint is not re-dialled on
+            // every page view while it holds a worker for twenty seconds.
+            set_transient($key, 'none', 300);
+        }
+        return null;
+    }
+    if ($have_cache) {
+        set_transient($key, $result, cloudflare_ai_search_lead_cache_ttl());
+    }
+    return $result;
+}
+
 function cloudflare_ai_provider_connector_key()
 {
     $env = getenv('CLOUDFLARE_API_KEY');

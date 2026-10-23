@@ -613,3 +613,121 @@ function cloudflare_ai_provider_catalog_entry($model_id)
     }
     return null;
 }
+
+/**
+ * Guards around the ONE unauthenticated path to a billable call (issue #14).
+ *
+ * `cloudflare_ai_search_query()` POSTs to /chat/completions, which GENERATES.
+ * With `lead_search` on, `GET /?s=<anything>` reaches it, so an anonymous
+ * visitor drives paid Workers AI generation one call per request. Measured on
+ * a live store: the request takes about twelve seconds and the answer renders
+ * to the visitor.
+ *
+ * TWELVE SECONDS IS THE SECOND PROBLEM AND IT IS NOT ABOUT MONEY. The call
+ * holds a PHP worker for its whole duration, up to the 20 second timeout, so
+ * a handful of concurrent `?s=` requests can exhaust a single origin's worker
+ * pool. The cache below is what fixes that case: a repeated question costs no
+ * worker time at all.
+ *
+ * Three guards, in the order they are cheapest to apply:
+ *
+ *   1. LENGTH CAP, refusing rather than truncating. Truncating still bills.
+ *   2. CACHE on the normalised question, so repeats are free.
+ *   3. CALL CEILING per window, global rather than per IP, because an IP
+ *      ceiling is defeated by the traffic shape it is meant to stop.
+ *
+ * EVERY GUARD FAILS CLOSED TO PRINTING NOTHING, which is what this path
+ * already did on a transport error, so a refused request looks to the visitor
+ * exactly like a search with no answer. No new failure mode is introduced.
+ *
+ * Deliberately NOT a per-IP limit and NOT a crawler heuristic. A referer and
+ * Accept-header test was considered and rejected: it guesses, and the cost of
+ * guessing wrong is silently withholding the feature from real visitors. The
+ * ceiling bounds the damage without that risk.
+ */
+
+/** Longest question forwarded to the model. */
+function cloudflare_ai_search_lead_max_length()
+{
+    $default = 300;
+    if (function_exists('apply_filters')) {
+        $value = apply_filters('cloudflare_ai_search_lead_max_length', $default);
+        if (is_int($value) && $value > 0) {
+            return $value;
+        }
+    }
+    return $default;
+}
+
+/** Seconds an answer is cached for. */
+function cloudflare_ai_search_lead_cache_ttl()
+{
+    $default = 3600;
+    if (function_exists('apply_filters')) {
+        $value = apply_filters('cloudflare_ai_search_lead_cache_ttl', $default);
+        if (is_int($value) && $value > 0) {
+            return $value;
+        }
+    }
+    return $default;
+}
+
+/** Generation calls allowed per window, and the window in seconds. */
+function cloudflare_ai_search_lead_ceiling()
+{
+    $default = array('calls' => 60, 'window' => 3600);
+    if (function_exists('apply_filters')) {
+        $value = apply_filters('cloudflare_ai_search_lead_ceiling', $default);
+        if (
+            is_array($value)
+            && isset($value['calls'], $value['window'])
+            && is_int($value['calls']) && $value['calls'] > 0
+            && is_int($value['window']) && $value['window'] > 0
+        ) {
+            return $value;
+        }
+    }
+    return $default;
+}
+
+/**
+ * Normalise a question so that trivially different spellings share a cache
+ * entry. Lowercase, collapse whitespace, trim.
+ *
+ * @param string $question
+ * @return string
+ */
+function cloudflare_ai_search_lead_normalise($question)
+{
+    $question = (string) $question;
+    $question = preg_replace('/\s+/u', ' ', $question);
+    return trim(function_exists('mb_strtolower') ? mb_strtolower($question, 'UTF-8') : strtolower($question));
+}
+
+/**
+ * True when the question is longer than the cap and must not be sent.
+ *
+ * Measured in CHARACTERS and not bytes, so a question in a multi-byte script
+ * is not refused for being in that script.
+ *
+ * @param string $question
+ * @return bool
+ */
+function cloudflare_ai_search_lead_too_long($question)
+{
+    $question = (string) $question;
+    $length = function_exists('mb_strlen') ? mb_strlen($question, 'UTF-8') : strlen($question);
+    return $length > cloudflare_ai_search_lead_max_length();
+}
+
+/**
+ * Transient key for a question. Hashed, because a transient key has a length
+ * limit and a raw question is visitor-controlled text.
+ *
+ * @param string $question
+ * @return string
+ */
+function cloudflare_ai_search_lead_cache_key($question)
+{
+    return 'cfais_lead_' . md5(cloudflare_ai_search_lead_normalise($question));
+}
