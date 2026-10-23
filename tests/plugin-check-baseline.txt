@@ -3,9 +3,21 @@
 # a listed one does not. Fix one, then DELETE its line (the script says FIXED).
 # Format: file<TAB>code<TAB>count. Never raise a count to make a run pass.
 #
-# Recorded 2026-10-23 against main d11bf8a, which already includes #37 and
-# #50, merged with PR #48. Harness: plugin-check from wordpress.org latest,
-# wp-cli 2.12.0, run through tests/plugin-check.sh.
+# Recorded 2026-10-23 against main 63b5f27. Harness: plugin-check from
+# wordpress.org latest, wp-cli 2.12.0, run through tests/plugin-check.sh.
+#
+# ONE NUMBER, AND IT IS DERIVED. The total on the OWED: heading below is the
+# only count stated in prose anywhere in this file, and tests/plugin-check.sh
+# asserts both that it equals the sum of the data lines and that it appears on
+# no other comment line. It used to appear in eight places and drifted from the
+# lines in three of them, which stayed green because the gate reads the lines
+# and never a comment. Do not reintroduce the total into the prose: the
+# assertion will fail, and that is the point.
+#
+# Per-file counts belong in the data lines. A HISTORY note may name one (see
+# the includes/cli.php note below), because the check covers the total only
+# and deliberately not the per-file counts: a note such as "moved 5 to 6" is
+# correct prose, and a guard that rejects it is a guard someone disables.
 #
 # =============================================================================
 # OWED: TextDomainMismatch, 71 calls across 7 files. Issue #38 clears it.
@@ -15,8 +27,10 @@
 # 5 to 6 as its OWN doing, not knowing PR #48 had already made that exact move
 # for a different reason. main's heading said 67: it accounted for #48's call
 # and knew nothing of #53's four. Each side was internally consistent and both
-# were wrong once merged, so both calls are real, cli.php owes 7 rather than 6,
-# and the total is 71.
+# were wrong once merged, so both calls are real and cli.php owes 7 rather
+# than 6. The resulting total is on the heading above and is stated nowhere
+# else, which PR #55's assertion requires: this paragraph originally ended by
+# repeating it, and that assertion is what caught it.
 #
 # THAT IS THE TRAP A BASELINE CONFLICT SETS. Taking either side wholesale
 # produces a file that passes its own self-sum check while describing an
@@ -35,7 +49,7 @@
 # a measurement. The heading states the CURRENT set, so it moves.
 #
 # =============================================================================
-# THESE 67 CALLS ARE CORRECT. Do not change them. Every one passes the text
+# THESE CALLS ARE ALL CORRECT. Do not change them. Every one passes the text
 # domain the plugin header declares, skyphusion-ai, and tests/i18n-test.php
 # asserts precisely that on every call it finds through PHP's own tokenizer.
 # Read "mismatch" carefully: the calls match the HEADER, and what they
@@ -46,8 +60,8 @@
 # skyphusion-ai did NOT clear this sniff and could not have: Plugin Check
 # derives the expected slug from the plugin directory it is handed, which is
 # the archive prefix, still cloudflare-ai-search/. The repo rename has already
-# happened and all 67 findings survived it. Plugin Check states the comparison
-# itself, as a separate warning on the main file:
+# happened and every one of these findings survived it. Plugin Check states
+# the comparison itself, as a separate warning on the main file:
 #
 #   textdomain_mismatch: The "Text Domain" header in the plugin file does not
 #   match the slug. Found "skyphusion-ai", expected "cloudflare-ai-search".
@@ -57,23 +71,29 @@
 #
 #   PLUGIN_CHECK_PREFIX=skyphusion-ai bash tests/plugin-check.sh
 #
-# All 66 TextDomainMismatch errors go to 0, and the textdomain_mismatch and
+# Every TextDomainMismatch error goes to 0, and the textdomain_mismatch and
 # trademarked_term warnings disappear with them. That is the whole fix, it is
 # one rename, and it is issue #38. It also doubles as the positive control for
-# this sniff: the instrument can report 0 on these files, so the 66 are a
-# statement about the directory and not an unconditional artifact.
+# this sniff: the instrument can report 0 on these files, so these findings
+# are a statement about the directory and not an unconditional artifact.
+#
+# That run PREDATES the sixth includes/cli.php call #48 added, and it has not
+# been repeated since. The result does not depend on the count, which is why
+# it is stated without one: every finding in the family went to 0, whatever
+# the family then stood at. Rewriting someone else's reading to match a later
+# tree would turn a measurement into an assertion, so it has not been touched.
 #
 # DO NOT SILENCE THESE BY CHANGING THE DOMAIN. The naive fix is to change the
-# domain to cloudflare-ai-search so the 66 errors go away, and it is WRONG:
-# the wordpress.org permalink will be skyphusion-ai and the text domain must
-# equal the permalink. README.md line 98 already says so ("That permalink is
-# permanent, and it must not begin with `cloudflare`. The text domain is
-# `skyphusion-ai`, the same as that permalink."). Changing 67 correct calls to
-# the wrong domain would clear this gate and break translation permanently,
-# because the strings would be extracted into a project nobody translates. It
-# would also fail tests/i18n-test.php, which asserts every call uses the
-# declared domain. The only thing that clears these lines is #38 renaming the
-# directory; delete all seven in that PR, together, not one at a time.
+# domain to cloudflare-ai-search so the errors go away, and it is WRONG: the
+# wordpress.org permalink will be skyphusion-ai and the text domain must equal
+# the permalink. README.md already says so ("That permalink is permanent, and
+# it must not begin with `cloudflare`. The text domain is `skyphusion-ai`, the
+# same as that permalink."). Changing these correct calls to the wrong domain
+# would clear this gate and break translation permanently, because the strings
+# would be extracted into a project nobody translates. It would also fail
+# tests/i18n-test.php, which asserts every call uses the declared domain. The
+# only thing that clears these lines is #38 renaming the directory; delete all
+# seven in that PR, together, not one at a time.
 #
 # includes/cli.php moved 5 to 6 in PR #48 (issue #6), and 6 to 7 resolving
 # this merge. The sixth call is #48's deprecation notice warning that --color

@@ -61,6 +61,7 @@ require dirname(__DIR__) . '/includes/routes.php';
 require dirname(__DIR__) . '/includes/cli.php';
 
 $failures = 0;
+$checks = 0;
 
 function shown($value)
 {
@@ -73,7 +74,8 @@ function shown($value)
 
 function expect($label, $actual, $expected)
 {
-    global $failures;
+    global $failures, $checks;
+    $checks++;
     if ($actual !== $expected) {
         fwrite(STDERR, "FAIL {$label}\n  actual: " . shown($actual) . "\n  expected: " . shown($expected) . "\n");
         $failures++;
@@ -135,6 +137,37 @@ expect('every test file in tests/ is required by this runner', $runner_missing, 
 expect(
     'and there are several of them, so that check is not vacuous',
     count((array) glob(__DIR__ . '/*-test.php')) >= 6,
+    true
+);
+
+/*
+ * A FLOOR ON THE ASSERTIONS, not only on the files. The two checks above
+ * cover a dropped `require`: the file list is read from disk and compared to
+ * this file's own source, so a whole file falling out of the run is caught.
+ *
+ * WHAT THEY CANNOT SEE is a file that is still required and no longer
+ * asserts. Delete the bodies out of stock-test.php and both checks above stay
+ * green: the file still exists, it is still required, and the remaining
+ * assertions are all still true. The run reports "all passed" over a smaller
+ * set, which is the one thing a passing suite cannot tell you.
+ *
+ * So the COUNT is pinned. 230 was measured on main at 63b5f27 with
+ *   php tests/endpoint-test.php | grep -cE '^(ok|FAIL)'
+ *
+ * THE FLOOR EQUALS THAT READING AND IS NOT ONE HIGHER, which is not obvious
+ * and the first draft got it wrong. `$checks` is incremented INSIDE expect(),
+ * so the comparison below is evaluated while this assertion is still
+ * uncounted: it sees 230, not the 231 the finished run reports. A floor of 231
+ * failed on a tree with nothing wrong with it, which is the right direction
+ * for a guard to be wrong in but still wrong.
+ *
+ * IT IS A FLOOR AND NOT AN EQUALITY on purpose. Adding tests must not red
+ * this; only losing them. Lowering it is therefore a deliberate act that
+ * shows up in a diff, which is what makes it a decision rather than a drift.
+ */
+expect(
+    'the run executed its whole assertion set',
+    $checks >= 230,
     true
 );
 
