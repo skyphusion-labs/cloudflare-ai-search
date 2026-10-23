@@ -162,6 +162,21 @@ expect(
     'Bad Bearer [redacted]'
 );
 
+// THE OTHER BRANCH. With no message in the payload the builder falls back to
+// a translated sentence, and that path fataled in this harness the moment
+// `__()` arrived in it, because every existing case went down the branch
+// above. One uncovered branch is all it takes.
+expect(
+    'no message falls back to the status sentence',
+    cloudflare_ai_provider_error_message(503, array()),
+    'Cloudflare returned HTTP 503.'
+);
+expect(
+    'and an undecodable body does the same',
+    cloudflare_ai_provider_error_message(502, null),
+    'Cloudflare returned HTTP 502.'
+);
+
 $speech = cloudflare_ai_provider_speech_body('Hello', 'Angus');
 expect('speech speaker', $speech['speaker'], 'angus');
 expect('speech encoding', $speech['encoding'], 'mp3');

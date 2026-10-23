@@ -10,6 +10,49 @@ if (!defined('ABSPATH')) {
     define('ABSPATH', __DIR__ . '/');
 }
 
+/**
+ * Translation stand-ins, defined BEFORE the sources are loaded.
+ *
+ * `includes/routes.php` carries `__()` calls since issue #15, and this
+ * harness is not a WordPress bootstrap. Without these, a code path reaching a
+ * translated string fatals here while working perfectly in production, which
+ * is the worst direction for a harness to be wrong in.
+ *
+ * THESE ARE THE SAME STAND-INS `stock-test.php` USED TO DEFINE, moved up here
+ * so they exist before any source is required, and reading the SAME globals
+ * so that file still drives them. Defining a second, simpler passthrough here
+ * would have won on `function_exists` and silently turned three of its
+ * translation assertions into tests of an English passthrough. It did exactly
+ * that on the first attempt.
+ */
+$GLOBALS['cfai_stock_test_strings'] = array();
+$GLOBALS['cfai_stock_test_plural'] = null;
+
+if (!function_exists('__')) {
+    function __($text, $domain = 'default')
+    {
+        $strings = $GLOBALS['cfai_stock_test_strings'];
+        return isset($strings[$text]) ? $strings[$text] : $text;
+    }
+}
+if (!function_exists('_n')) {
+    function _n($single, $plural, $count, $domain = 'default')
+    {
+        if ((int) $count === 1) {
+            return $single;
+        }
+        return $GLOBALS['cfai_stock_test_plural'] !== null
+            ? $GLOBALS['cfai_stock_test_plural']
+            : $plural;
+    }
+}
+if (!function_exists('esc_html__')) {
+    function esc_html__($text, $domain = 'default')
+    {
+        return htmlspecialchars((string) __($text, $domain), ENT_QUOTES, 'UTF-8');
+    }
+}
+
 require dirname(__DIR__) . '/includes/endpoint.php';
 require dirname(__DIR__) . '/includes/routes.php';
 
@@ -53,6 +96,7 @@ require __DIR__ . '/provider-test.php';
 require __DIR__ . '/external-services-test.php';
 require __DIR__ . '/stock-test.php';
 // LAST on purpose: it defines WordPress stand-ins at global scope.
+require __DIR__ . '/i18n-test.php';
 require __DIR__ . '/lead-guard-test.php';
 
 if ($failures > 0) {
