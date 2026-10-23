@@ -2,9 +2,18 @@
 /**
  * Server-rendered variation and stock text.
  *
- * The HTML builder does not call WordPress or WooCommerce. The product
- * reader runs only when a hook calls it. tests/stock-test.php defines
- * ABSPATH and loads this file without WordPress.
+ * Two halves, deliberately separated so one of them is testable.
+ *
+ * The BUILDER (escape, sentence, labels, quantity_text, line, html) turns
+ * plain arrays into markup. It calls no WooCommerce at all, and the only
+ * WordPress it calls is the optional i18n in the label helpers, which falls
+ * back to English when WordPress is absent. That is what lets
+ * tests/stock-test.php exercise it without a WordPress bootstrap.
+ *
+ * The READER (plain, attribute_text, price_text, quantity, row_from_product,
+ * max_variations, variation_rows, rows, markup) talks to WooCommerce and runs
+ * only when a hook in includes/frontend.php calls it. No WooCommerce object
+ * crosses into the builder; it receives plain arrays.
  */
 
 if (!defined('ABSPATH')) {
@@ -46,15 +55,73 @@ function cloudflare_ai_search_stock_sentence($text)
 }
 
 /**
+ * The visible label set, translated when WordPress is loaded.
+ *
+ * Every __() argument here is a literal, because the WordPress string
+ * extractor reads the source and cannot see a variable passed to __().
+ * Shoppers read these strings, so they are translated; the section class
+ * name is what a crawler and a stylesheet match on, so that one is not.
+ *
+ * @return array
+ */
+function cloudflare_ai_search_stock_labels()
+{
+    if (!function_exists('__')) {
+        return array(
+            'heading' => 'Stock',
+            'sku' => 'SKU %s.',
+            'instock' => 'In stock.',
+            'outofstock' => 'Out of stock.',
+            'onbackorder' => 'On backorder.',
+        );
+    }
+
+    return array(
+        'heading' => __('Stock', 'skyphusion-ai'),
+        /* translators: %s is a product or variation SKU. */
+        'sku' => __('SKU %s.', 'skyphusion-ai'),
+        'instock' => __('In stock.', 'skyphusion-ai'),
+        'outofstock' => __('Out of stock.', 'skyphusion-ai'),
+        'onbackorder' => __('On backorder.', 'skyphusion-ai'),
+    );
+}
+
+/**
+ * Translated unit count. Kept apart from the label set because it needs the
+ * plural form, and _n() has to see the number to pick one.
+ *
+ * @param int $quantity
+ * @return string
+ */
+function cloudflare_ai_search_stock_quantity_text($quantity)
+{
+    $count = (int) $quantity;
+    if (function_exists('_n')) {
+        /* translators: %d is the number of units in stock. */
+        $format = _n('%d available.', '%d available.', $count, 'skyphusion-ai');
+    } else {
+        $format = '%d available.';
+    }
+    return sprintf(cloudflare_ai_search_stock_escape($format), $count);
+}
+
+/**
  * Plain text for one stock row. Empty when the row has nothing to say.
  *
- * @param mixed $row
+ * A label can arrive from a translation file, so labels are escaped here too
+ * and not trusted for being ours. %s and %d survive escaping unchanged.
+ *
+ * @param mixed      $row
+ * @param array|null $labels Pass the set once when looping, or let it load.
  * @return string Escaped text, with no markup of its own.
  */
-function cloudflare_ai_search_stock_line($row)
+function cloudflare_ai_search_stock_line($row, $labels = null)
 {
     if (!is_array($row)) {
         return '';
+    }
+    if (!is_array($labels)) {
+        $labels = cloudflare_ai_search_stock_labels();
     }
 
     $parts = array();
@@ -66,7 +133,10 @@ function cloudflare_ai_search_stock_line($row)
 
     $sku = isset($row['sku']) ? trim((string) $row['sku']) : '';
     if ($sku !== '') {
-        $parts[] = 'SKU ' . cloudflare_ai_search_stock_escape($sku) . '.';
+        $parts[] = sprintf(
+            cloudflare_ai_search_stock_escape($labels['sku']),
+            cloudflare_ai_search_stock_escape($sku)
+        );
     }
 
     $price = isset($row['price']) ? trim((string) $row['price']) : '';
@@ -75,18 +145,19 @@ function cloudflare_ai_search_stock_line($row)
     }
 
     $status = isset($row['stock_status']) ? (string) $row['stock_status'] : '';
-    if ($status === 'instock') {
-        $parts[] = 'In stock.';
-    } elseif ($status === 'outofstock') {
-        $parts[] = 'Out of stock.';
-    } elseif ($status === 'onbackorder') {
-        $parts[] = 'On backorder.';
+    if ($status === 'instock' || $status === 'outofstock' || $status === 'onbackorder') {
+        $parts[] = cloudflare_ai_search_stock_escape($labels[$status]);
     }
 
+    /*
+     * A managed product can hold a negative quantity once backorders have
+     * been taken against it. "-3 available." is not a fact worth indexing,
+     * so the count is dropped and the status line carries the meaning.
+     */
     $managing = isset($row['managing_stock']) && $row['managing_stock'] === true;
     $quantity = array_key_exists('quantity', $row) ? $row['quantity'] : null;
-    if ($managing && is_int($quantity)) {
-        $parts[] = cloudflare_ai_search_stock_escape((string) $quantity) . ' available.';
+    if ($managing && is_int($quantity) && $quantity >= 0) {
+        $parts[] = cloudflare_ai_search_stock_quantity_text($quantity);
     }
 
     return implode(' ', $parts);
@@ -104,9 +175,11 @@ function cloudflare_ai_search_stock_html($rows)
         return '';
     }
 
+    $labels = cloudflare_ai_search_stock_labels();
+
     $items = '';
     foreach ($rows as $row) {
-        $line = cloudflare_ai_search_stock_line($row);
+        $line = cloudflare_ai_search_stock_line($row, $labels);
         if ($line === '') {
             continue;
         }
@@ -116,7 +189,9 @@ function cloudflare_ai_search_stock_html($rows)
         return '';
     }
 
-    return '<section class="cloudflare-ai-search-stock"><h2>Stock</h2><ul>' . $items . '</ul></section>';
+    return '<section class="cloudflare-ai-search-stock"><h2>'
+        . cloudflare_ai_search_stock_escape($labels['heading'])
+        . '</h2><ul>' . $items . '</ul></section>';
 }
 
 /**
@@ -163,6 +238,9 @@ function cloudflare_ai_search_stock_attribute_text($product)
 /**
  * Numeric price plus the store currency code. Not get_price_html().
  *
+ * get_price_html() carries markup and renders a range for a variable parent;
+ * the index wants one plain amount per row.
+ *
  * @param object $product
  * @return string
  */
@@ -191,6 +269,9 @@ function cloudflare_ai_search_stock_price_text($product)
 
 /**
  * Whole-number stock quantity, or null when the product does not manage stock.
+ *
+ * Read faithfully, including a negative, so the reader stays a reader. The
+ * builder decides what is worth printing.
  *
  * @param object $product
  * @param bool   $managing
@@ -244,6 +325,34 @@ function cloudflare_ai_search_stock_row_from_product($product, $include_attribut
 }
 
 /**
+ * Most variations to read for one product page.
+ *
+ * Each row costs one product load. WooCommerce stops loading variations into
+ * the add to cart form once a product has more than its own AJAX threshold,
+ * so above that an uncapped loop here is new work on every anonymous request
+ * rather than a second pass over objects already in the cache. The cap bounds
+ * that; a store that needs every row indexed raises it with the filter.
+ *
+ * @return int
+ */
+function cloudflare_ai_search_stock_max_variations()
+{
+    $default = 100;
+    $max = $default;
+    if (function_exists('apply_filters')) {
+        $max = apply_filters('cloudflare_ai_search_stock_max_variations', $default);
+    }
+    if (!is_numeric($max)) {
+        return $default;
+    }
+    $max = (int) $max;
+    if ($max < 1) {
+        return $default;
+    }
+    return $max;
+}
+
+/**
  * Read variation rows without get_available_variations().
  *
  * That method drops hidden and out-of-stock variations when the catalog
@@ -263,8 +372,12 @@ function cloudflare_ai_search_stock_variation_rows($product)
         return array();
     }
 
+    $max = cloudflare_ai_search_stock_max_variations();
     $rows = array();
     foreach ($children as $child_id) {
+        if (count($rows) >= $max) {
+            break;
+        }
         $child = wc_get_product($child_id);
         if (!is_object($child) || !method_exists($child, 'is_type') || !$child->is_type('variation')) {
             continue;
@@ -312,6 +425,11 @@ function cloudflare_ai_search_stock_rows()
 
 /**
  * Markup for this request, printed at most once.
+ *
+ * Two hooks call this, because a block theme and a classic theme reach the
+ * inside of main by different routes and a site can answer to both. The flag
+ * is set only once there is something to print, so an early call that found
+ * nothing does not consume the one print.
  *
  * @return string
  */
