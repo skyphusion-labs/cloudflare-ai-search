@@ -55,6 +55,10 @@ if (!function_exists('esc_html__')) {
 
 require dirname(__DIR__) . '/includes/endpoint.php';
 require dirname(__DIR__) . '/includes/routes.php';
+// cli.php only DEFINES things at load; its add_command is guarded by
+// `defined('WP_CLI')`, so requiring it here is safe and makes the accent
+// colour resolver reachable without a WP-CLI process.
+require dirname(__DIR__) . '/includes/cli.php';
 
 $failures = 0;
 
@@ -93,6 +97,7 @@ expect('snippet src', cloudflare_ai_search_snippet_src($good), 'https://abc123.s
 expect('snippet src rejected', cloudflare_ai_search_snippet_src('https://example.com'), '');
 
 require __DIR__ . '/provider-test.php';
+require __DIR__ . '/cli-accent-color-test.php';
 require __DIR__ . '/stock-test.php';
 // LAST on purpose: it defines WordPress stand-ins at global scope.
 require __DIR__ . '/i18n-test.php';
