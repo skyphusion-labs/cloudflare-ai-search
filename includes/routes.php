@@ -115,6 +115,7 @@ function cloudflare_ai_provider_chat_url($account_id, $gateway_id)
     if ($gateway_id === '') {
         return 'https://api.cloudflare.com/client/v4/accounts/' . $account_id . '/ai/v1/chat/completions';
     }
+    // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- AI Gateway API host, not a remote asset.
     return 'https://gateway.ai.cloudflare.com/v1/' . $account_id . '/' . $gateway_id . '/workers-ai/v1/chat/completions';
 }
 
@@ -129,6 +130,7 @@ function cloudflare_ai_provider_run_url($account_id, $gateway_id, $model)
     if ($gateway_id === '') {
         return 'https://api.cloudflare.com/client/v4/accounts/' . $account_id . '/ai/run/' . $model;
     }
+    // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- AI Gateway API host, not a remote asset.
     return 'https://gateway.ai.cloudflare.com/v1/' . $account_id . '/' . $gateway_id . '/workers-ai/' . $model;
 }
 
@@ -507,17 +509,23 @@ function cloudflare_ai_provider_links($account_id)
 {
     $account_id = cloudflare_ai_provider_account_id($account_id);
     if ($account_id === '') {
+        // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- dashboard link, not a remote asset.
         $dash = 'https://dash.cloudflare.com/?to=/:account/ai/';
     } else {
+        // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- dashboard link, not a remote asset.
         $dash = 'https://dash.cloudflare.com/' . $account_id . '/ai/';
     }
     return array(
         'workers_ai' => $dash . 'workers-ai',
         'gateway' => $dash . 'ai-gateway',
         'search' => $dash . 'ai-search',
+        // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- docs link, not a remote asset.
         'workers_ai_docs' => 'https://developers.cloudflare.com/workers-ai/',
+        // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- docs link, not a remote asset.
         'gateway_docs' => 'https://developers.cloudflare.com/ai-gateway/',
+        // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- docs link, not a remote asset.
         'search_docs' => 'https://developers.cloudflare.com/ai-search/',
+        // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- docs link, not a remote asset.
         'gateway_workers_docs' => 'https://developers.cloudflare.com/ai-gateway/usage/providers/workers-ai/',
     );
 }
