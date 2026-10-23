@@ -234,14 +234,38 @@ expect('and raises no notice', $notices, array());
 // command print "Saved." having changed nothing. A validation that disappears
 // with its validator permits exactly the case nobody tested.
 $cfais_cli = (string) file_get_contents(dirname(__DIR__) . '/includes/cli.php');
-$cfais_open = "array_key_exists('color', \$assoc) && function_exists('sanitize_hex_color')";
+/*
+ * KEY-AGNOSTIC ON PURPOSE, and the keyed version was measured going vacuous.
+ *
+ * This searched for `array_key_exists('color', $assoc) && function_exists(...)`,
+ * naming the flag. PR #48 renamed the flag to `accent-color` and the #48/#53
+ * merge moved this validation onto the new key, so the keyed needle stopped
+ * describing the live code path. MEASURED on the merged tree: reintroducing the
+ * fail-open as
+ *
+ *   if (array_key_exists('accent-color', $assoc) && function_exists('sanitize_hex_color')) {
+ *
+ * gave exit 0 with BOTH assertions green and the fail-open fully restored. The
+ * hard error was still present in the file, and unreachable, because the outer
+ * condition short-circuits on exactly the case it exists to catch. A guard that
+ * names a key cannot survive that key being renamed, and it fails silently in
+ * the reassuring direction.
+ *
+ * So the needle is the DEFECT SHAPE rather than the flag: the validator's
+ * availability must never be a condition for running the check, whatever the
+ * option is called.
+ */
+$cfais_open = "&& function_exists('sanitize_hex_color')";
 $cfais_closed = "if (!function_exists('sanitize_hex_color')) {";
 
 expect('the colour check no longer fails open', strpos($cfais_cli, $cfais_open) !== false, false);
 expect('a missing validator is an error', strpos($cfais_cli, $cfais_closed) !== false, true);
 
 // Controls. Without these both assertions pass on any file lacking the
-// strings, including an empty one.
-$cfais_planted = "if (" . $cfais_open . ") {\n    if (!sanitize_hex_color(1)) {}\n}";
+// strings, including an empty one. The planted form uses the CURRENT key, so
+// a future rename of the flag does not quietly stop this control exercising
+// the matcher.
+$cfais_planted = "if (array_key_exists('accent-color', \$assoc) " . $cfais_open . ") {\n"
+    . "    if (!sanitize_hex_color(1)) {}\n}";
 expect('the check can see the fail-open form', strpos($cfais_planted, $cfais_open) !== false, true);
 expect('and sees the hard error missing', strpos($cfais_planted, $cfais_closed) !== false, false);

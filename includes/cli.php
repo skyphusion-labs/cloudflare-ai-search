@@ -207,12 +207,19 @@ class Cloudflare_AI_Search_CLI
             }
         }
         if (array_key_exists('accent-color', $assoc)) {
-            // FAILS CLOSED. This used to read
-            // `array_key_exists(...) && function_exists('sanitize_hex_color')`,
-            // which skipped the whole check when the validator was missing and
+            // FAILS CLOSED. The old form made the validator's own availability
+            // a CONDITION of the outer if, which skipped the whole check when
+            // it was missing and
             // let the command report "Saved." having changed nothing. A
             // validation that disappears with its validator permits exactly the
             // case nobody tested, so absence is an error rather than a pass.
+            //
+            // THE OLD FORM IS DESCRIBED AND NOT QUOTED, deliberately.
+            // tests/settings-sanitize-test.php greps THIS FILE for it, and a
+            // text search cannot tell code from a comment about code: quoting
+            // it here puts the defect back in the scanner's search space and
+            // reds the guard on a correct tree. Measured, twice in one day on
+            // two repos.
             //
             // THE KEY IS `accent-color` AND NOT `color` (PR #48). The shim in
             // cloudflare_ai_search_cli_accent_color() runs earlier, normalises
