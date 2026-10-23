@@ -123,6 +123,33 @@ function cloudflare_ai_search_register_settings()
 }
 add_action('admin_init', 'cloudflare_ai_search_register_settings');
 
+/**
+ * Tell the admin that a submitted value was rejected and what was kept.
+ *
+ * WHICH FALLBACKS GET ONE, stated so it can be argued with rather than
+ * discovered. A notice is owed when the stored value is UNRELATED to what was
+ * submitted, and not owed when the stored value is the NEAREST PERMITTED one.
+ *
+ *   reported   endpoint, account id, gateway id, colour, theme, placement.
+ *              Each discards the submission and restores something else.
+ *   silent     max_results clamped to 1..20, and placeholder truncated to 80
+ *              characters. Each keeps the submission and moves it to the
+ *              closest allowed value, so the direction of the intent survives.
+ *   silent     an EMPTY field. Clearing a box is not a rejected value.
+ *
+ * That line is the difference between "we could not use what you typed" and
+ * "we used as much of it as we could", and only the first is a surprise.
+ *
+ * @param string $code    Field slug, matching the input key.
+ * @param string $message Already translated.
+ */
+function cloudflare_ai_search_reject($code, $message)
+{
+    if (function_exists('add_settings_error')) {
+        add_settings_error('cloudflare_ai_search', $code, $message);
+    }
+}
+
 function cloudflare_ai_search_sanitize($input)
 {
     $old = cloudflare_ai_search_settings();
@@ -134,14 +161,8 @@ function cloudflare_ai_search_sanitize($input)
     $typed = isset($input['endpoint']) ? trim((string) $input['endpoint']) : '';
     $endpoint = cloudflare_ai_search_normalize_endpoint($typed);
     if ($typed !== '' && $endpoint === '') {
-        if (function_exists('add_settings_error')) {
-            add_settings_error(
-                'cloudflare_ai_search',
-                'endpoint',
-                // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- names the required host. It does not load a file.
-                __('That address has to be an https link ending in search.ai.cloudflare.com. The previous address was kept.', 'skyphusion-ai')
-            );
-        }
+        // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- names the required host. It does not load a file.
+        cloudflare_ai_search_reject('endpoint', __('That address has to be an https link ending in search.ai.cloudflare.com. The previous address was kept.', 'skyphusion-ai'));
         $endpoint = $old['endpoint'];
     }
     $clean['endpoint'] = $endpoint;
@@ -151,10 +172,25 @@ function cloudflare_ai_search_sanitize($input)
     $clean['chat'] = !empty($input['chat']);
     $clean['hide_checkout'] = !empty($input['hide_checkout']);
     $clean['hide_branding'] = !empty($input['hide_branding']);
-    $clean['placement'] = (isset($input['placement']) && $input['placement'] === 'shortcode') ? 'shortcode' : 'top';
+    $placement = isset($input['placement']) ? trim((string) $input['placement']) : '';
+    if (in_array($placement, array('top', 'shortcode'), true)) {
+        $clean['placement'] = $placement;
+    } else {
+        if ($placement !== '') {
+            cloudflare_ai_search_reject('placement', __('Where the search box goes has to be top or shortcode. It was set to top.', 'skyphusion-ai'));
+        }
+        $clean['placement'] = 'top';
+    }
 
-    $theme = isset($input['theme']) ? (string) $input['theme'] : 'auto';
-    $clean['theme'] = in_array($theme, array('auto', 'light', 'dark'), true) ? $theme : 'auto';
+    $theme = isset($input['theme']) ? trim((string) $input['theme']) : '';
+    if (in_array($theme, array('auto', 'light', 'dark'), true)) {
+        $clean['theme'] = $theme;
+    } else {
+        if ($theme !== '') {
+            cloudflare_ai_search_reject('theme', __('Light or dark has to be auto, light, or dark. It was set to auto.', 'skyphusion-ai'));
+        }
+        $clean['theme'] = 'auto';
+    }
 
     $placeholder = isset($input['placeholder']) ? sanitize_text_field((string) $input['placeholder']) : '';
     if ($placeholder === '') {
@@ -167,7 +203,11 @@ function cloudflare_ai_search_sanitize($input)
     }
     $clean['placeholder'] = $placeholder;
 
-    $color = sanitize_hex_color(isset($input['color']) ? (string) $input['color'] : '');
+    $typed_color = isset($input['color']) ? trim((string) $input['color']) : '';
+    $color = sanitize_hex_color($typed_color);
+    if ($typed_color !== '' && !$color) {
+        cloudflare_ai_search_reject('color', __('Accent color has to be a hex color such as #1B3A32. The previous color was kept.', 'skyphusion-ai'));
+    }
     $clean['color'] = $color ? $color : $old['color'];
 
     $max = isset($input['max_results']) ? (int) $input['max_results'] : 8;
@@ -187,13 +227,7 @@ function cloudflare_ai_search_sanitize($input)
     } else {
         $account = cloudflare_ai_provider_account_id($typed_account);
         if ($account === '') {
-            if (function_exists('add_settings_error')) {
-                add_settings_error(
-                    'cloudflare_ai_search',
-                    'account_id',
-                    __('Account ID has to be 32 hex characters. The previous account ID was kept.', 'skyphusion-ai')
-                );
-            }
+            cloudflare_ai_search_reject('account_id', __('Account ID has to be 32 hex characters. The previous account ID was kept.', 'skyphusion-ai'));
             $clean['account_id'] = $old['account_id'];
         } else {
             $clean['account_id'] = $account;
@@ -206,13 +240,7 @@ function cloudflare_ai_search_sanitize($input)
     } else {
         $gateway = cloudflare_ai_provider_gateway_id($typed_gateway);
         if ($gateway === '') {
-            if (function_exists('add_settings_error')) {
-                add_settings_error(
-                    'cloudflare_ai_search',
-                    'gateway_id',
-                    __('Gateway ID has to be a slug of letters, numbers, hyphens, or underscores. The previous gateway ID was kept.', 'skyphusion-ai')
-                );
-            }
+            cloudflare_ai_search_reject('gateway_id', __('Gateway ID has to be a slug of letters, numbers, hyphens, or underscores. The previous gateway ID was kept.', 'skyphusion-ai'));
             $clean['gateway_id'] = $old['gateway_id'];
         } else {
             $clean['gateway_id'] = $gateway;

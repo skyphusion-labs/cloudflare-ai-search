@@ -162,7 +162,16 @@ class Cloudflare_AI_Search_CLI
                 WP_CLI::error(__('That address has to be an https link ending in search.ai.cloudflare.com.', 'skyphusion-ai')); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- names the required host. It does not load a file.
             }
         }
-        if (array_key_exists('color', $assoc) && function_exists('sanitize_hex_color')) {
+        if (array_key_exists('color', $assoc)) {
+            // FAILS CLOSED. This used to read
+            // `array_key_exists(...) && function_exists('sanitize_hex_color')`,
+            // which skipped the whole check when the validator was missing and
+            // let the command report "Saved." having changed nothing. A
+            // validation that disappears with its validator permits exactly the
+            // case nobody tested, so absence is an error rather than a pass.
+            if (!function_exists('sanitize_hex_color')) {
+                WP_CLI::error(__('Cannot validate the color: sanitize_hex_color() is unavailable.', 'skyphusion-ai'));
+            }
             if (!sanitize_hex_color((string) $assoc['color'])) {
                 WP_CLI::error(__('Color has to be a hex color such as #1B3A32.', 'skyphusion-ai'));
             }
