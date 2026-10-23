@@ -2,8 +2,87 @@
 # This file is the list of what is owed. A new error fails tests/plugin-check.sh;
 # a listed one does not. Fix one, then DELETE its line (the script says FIXED).
 # Format: file<TAB>code<TAB>count. Never raise a count to make a run pass.
-# Recorded 2026-10-23 at main 23f33fe with plugin-check from wordpress.org latest.
-# The six TextDomainMismatch lines clear with the deep rename (slug to skyphusion-ai).
-# strip_tags at includes/stock.php:209 should become wp_strip_all_tags().
-includes/stock.php	WordPress.WP.AlternativeFunctions.strip_tags_strip_tags	1
+#
+# Recorded 2026-10-23 against main 1456b29 merged with PR #37 (head a4f439c),
+# which is the artifact these counts describe. Harness: plugin-check from
+# wordpress.org latest, wp-cli 2.12.0, PHP via tests/plugin-check.sh.
+#
+# =============================================================================
+# OWED: TextDomainMismatch, 66 calls across 7 files. Issue #38 clears it.
+# =============================================================================
+# THESE CALLS ARE CORRECT. Every one passes the text domain the plugin header
+# declares, skyphusion-ai, and tests/i18n-test.php asserts precisely that on
+# every call it finds through PHP's own tokenizer. Plugin Check reports them
+# because it expects the domain to equal the plugin SLUG, and the slug is
+# still cloudflare-ai-search: the directory and the main file have not been
+# renamed. Plugin Check says so itself, as a separate warning on the main file:
+#
+#   textdomain_mismatch: The "Text Domain" header in the plugin file does not
+#   match the slug. Found "skyphusion-ai", expected "cloudflare-ai-search".
+#
+# So all 66 are one root cause, the deferred slug rename, which is issue #38.
+#
+# DO NOT "fix" these by changing the domain to cloudflare-ai-search. That would
+# point 66 correct calls at a domain the header does not declare, fail
+# tests/i18n-test.php ("every translation call uses the declared domain"), and
+# have to be reverted by #38. The only thing that clears these lines is #38
+# renaming the slug to skyphusion-ai; delete them in that PR, not before.
+#
+# SEQUENCING, read this before trimming anything: six of the seven lines below
+# were recorded ahead of PR #37, which is what adds those 60 calls. Until #37
+# merges, a run against main alone reports those six as FIXED and advises
+# trimming them. That advice is wrong in this window. Do not trim them, or #37
+# fails the gate again. Only includes/stock.php already carries its 6 on main.
+includes/cli.php	WordPress.WP.I18n.TextDomainMismatch	5
+includes/provider-models.php	WordPress.WP.I18n.TextDomainMismatch	8
+includes/provider-speech.php	WordPress.WP.I18n.TextDomainMismatch	2
+includes/provider.php	WordPress.WP.I18n.TextDomainMismatch	6
+includes/routes.php	WordPress.WP.I18n.TextDomainMismatch	1
+includes/settings.php	WordPress.WP.I18n.TextDomainMismatch	38
 includes/stock.php	WordPress.WP.I18n.TextDomainMismatch	6
+#
+# =============================================================================
+# DOCUMENTED NON-FINDING. Baselined on purpose, and it must STAY baselined.
+# =============================================================================
+# includes/stock.php:209  strip_tags()
+#
+# An earlier revision of this file said this "should become
+# wp_strip_all_tags()". That was wrong, and acting on it breaks the tests.
+# The call is the else branch of a guard:
+#
+#   if (function_exists('wp_strip_all_tags')) { wp_strip_all_tags($text); }
+#   else                                      { strip_tags($text);        }
+#
+# so the suggested replacement would call, in the fallback, the very function
+# the guard has just proven absent. No file under tests/ defines
+# wp_strip_all_tags (checked: grep over tests/ returns no definition), so the
+# else branch is the path tests/stock-test.php actually exercises. This guard
+# is what lets includes/stock.php run without WordPress loaded, which is how
+# its own tests run at all. The sniff cannot see the guard; keep the line.
+includes/stock.php	WordPress.WP.AlternativeFunctions.strip_tags_strip_tags	1
+#
+# =============================================================================
+# WARNINGS. These never gate, so they carry no line. Recorded so that nobody
+# "fixes" a deliberate choice into a defect.
+# =============================================================================
+# includes/frontend.php:47  EnqueuedResourceParameters.MissingVersion
+# wp_enqueue_script() passes null for $ver deliberately. $src comes from
+# cloudflare_ai_search_snippet_src(), which returns
+#   <endpoint>/assets/v<CLOUDFLARE_AI_SEARCH_SNIPPET>/search-snippet.es.js
+# so the version is already IN the path. null is WordPress's documented way to
+# say "add no ?ver= query string", which is what we want for a file served
+# from the customer's AI Search endpoint rather than from the plugin.
+# The wp_enqueue_style() call at includes/frontend.php:30 DOES pass
+# CLOUDFLARE_AI_SEARCH_VERSION, because assets/search.css is ours and is
+# served through plugins_url(). The two calls differ on purpose; do not
+# "align" them.
+#
+# cloudflare-ai-search.php  trademarked_term
+# The slug contains "cloudflare", which wordpress.org does not allow a slug to
+# begin with. Issue #38 renaming the slug to skyphusion-ai clears this too, so
+# #38 is a wordpress.org submission prerequisite, not only a tidiness fix.
+#
+# CLAUDE.md  unexpected_markdown_file
+# CLAUDE.md is in the shipped archive. It is our internal instructions file and
+# no installing site needs it. Not gated, and not fixed here: it is a
+# .gitattributes/.distignore change that alters what every release contains.
