@@ -202,12 +202,7 @@ function cloudflare_ai_search_stock_html($rows)
  */
 function cloudflare_ai_search_stock_plain($value)
 {
-    $text = (string) $value;
-    if (function_exists('wp_strip_all_tags')) {
-        $text = wp_strip_all_tags($text);
-    } else {
-        $text = strip_tags($text);
-    }
+    $text = wp_strip_all_tags((string) $value);
     $text = preg_replace('/\s+/u', ' ', $text);
     if (!is_string($text)) {
         return '';

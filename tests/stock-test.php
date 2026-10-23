@@ -21,6 +21,24 @@ if (!function_exists('esc_html')) {
     }
 }
 
+/*
+ * The grouped reader strips markup from a child name through
+ * wp_strip_all_tags(). Production always has WordPress loaded there, so the
+ * plugin calls it directly; the harness supplies it instead of the plugin
+ * carrying a strip_tags() fallback that Plugin Check flags.
+ */
+if (!function_exists('wp_strip_all_tags')) {
+    function wp_strip_all_tags($text, $remove_breaks = false)
+    {
+        $text = preg_replace('@<(script|style)[^>]*?>.*?</\\1>@si', '', (string) $text);
+        $text = strip_tags($text);
+        if ($remove_breaks) {
+            $text = preg_replace('/[\r\n\t ]+/', ' ', $text);
+        }
+        return trim($text);
+    }
+}
+
 require_once dirname(__DIR__) . '/includes/stock.php';
 
 /* ---------- part one: English fallback, no WordPress ---------- */
