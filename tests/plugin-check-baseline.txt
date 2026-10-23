@@ -3,14 +3,21 @@
 # a listed one does not. Fix one, then DELETE its line (the script says FIXED).
 # Format: file<TAB>code<TAB>count. Never raise a count to make a run pass.
 #
-# Recorded 2026-10-23 against main 0b9cebb, which already includes #37.
-# Harness: plugin-check from wordpress.org latest, wp-cli 2.12.0, run through
-# tests/plugin-check.sh.
+# Recorded 2026-10-23 against main d11bf8a. Harness: plugin-check from
+# wordpress.org latest, wp-cli 2.12.0, run through tests/plugin-check.sh.
+#
+# ONE NUMBER, AND IT IS DERIVED. The total below is the only count stated in
+# prose anywhere in this file, and tests/plugin-check.sh asserts it equals the
+# sum of the data lines and that it appears on no other comment line. It used
+# to appear in eight places and drifted from the lines in three of them, which
+# stayed green because the gate reads the lines and never a comment. Do not
+# reintroduce the total into the prose: the assertion will fail, and that is
+# the point. Per-file counts belong in the data lines only.
 #
 # =============================================================================
 # OWED: TextDomainMismatch, 66 calls across 7 files. Issue #38 clears it.
 # =============================================================================
-# THESE 66 CALLS ARE CORRECT. Do not change them. Every one passes the text
+# THESE CALLS ARE ALL CORRECT. Do not change them. Every one passes the text
 # domain the plugin header declares, skyphusion-ai, and tests/i18n-test.php
 # asserts precisely that on every call it finds through PHP's own tokenizer.
 # Read "mismatch" carefully: the calls match the HEADER, and what they
@@ -21,8 +28,8 @@
 # skyphusion-ai did NOT clear this sniff and could not have: Plugin Check
 # derives the expected slug from the plugin directory it is handed, which is
 # the archive prefix, still cloudflare-ai-search/. The repo rename has already
-# happened and all 66 findings survived it. Plugin Check states the comparison
-# itself, as a separate warning on the main file:
+# happened and every one of these findings survived it. Plugin Check states
+# the comparison itself, as a separate warning on the main file:
 #
 #   textdomain_mismatch: The "Text Domain" header in the plugin file does not
 #   match the slug. Found "skyphusion-ai", expected "cloudflare-ai-search".
@@ -32,19 +39,19 @@
 #
 #   PLUGIN_CHECK_PREFIX=skyphusion-ai bash tests/plugin-check.sh
 #
-# All 66 TextDomainMismatch errors go to 0, and the textdomain_mismatch and
+# Every TextDomainMismatch error goes to 0, and the textdomain_mismatch and
 # trademarked_term warnings disappear with them. That is the whole fix, it is
 # one rename, and it is issue #38. It also doubles as the positive control for
-# this sniff: the instrument can report 0 on these files, so the 66 are a
-# statement about the directory and not an unconditional artifact.
+# this sniff: the instrument can report 0 on these files, so these findings
+# are a statement about the directory and not an unconditional artifact.
 #
 # DO NOT SILENCE THESE BY CHANGING THE DOMAIN. The naive fix is to change the
-# domain to cloudflare-ai-search so the 66 errors go away, and it is WRONG:
-# the wordpress.org permalink will be skyphusion-ai and the text domain must
-# equal the permalink. README.md line 98 already says so ("That permalink is
+# domain to cloudflare-ai-search so the errors go away, and it is WRONG: the
+# wordpress.org permalink will be skyphusion-ai and the text domain must equal
+# the permalink. README.md line 98 already says so ("That permalink is
 # permanent, and it must not begin with `cloudflare`. The text domain is
-# `skyphusion-ai`, the same as that permalink."). Changing 66 correct calls to
-# the wrong domain would clear this gate and break translation permanently,
+# `skyphusion-ai`, the same as that permalink."). Changing these correct calls
+# to the wrong domain would clear this gate and break translation permanently,
 # because the strings would be extracted into a project nobody translates. It
 # would also fail tests/i18n-test.php, which asserts every call uses the
 # declared domain. The only thing that clears these lines is #38 renaming the
@@ -102,6 +109,6 @@ includes/stock.php	WordPress.WP.I18n.TextDomainMismatch	6
 #
 # cloudflare-ai-search.php  trademarked_term
 # The slug contains "cloudflare", which wordpress.org does not allow a slug
-# to begin with. Measured above: #38 clears this warning along with the 66
-# errors, so #38 is a wordpress.org submission prerequisite and not only
-# tidiness.
+# to begin with. Measured above: #38 clears this warning along with the
+# errors above, so #38 is a wordpress.org submission prerequisite and not
+# only tidiness.
