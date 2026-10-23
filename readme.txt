@@ -4,7 +4,7 @@ Tags: search, cloudflare, ai, woocommerce
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.2.2
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -62,6 +62,13 @@ The search box lists pages. The chat button answers in a sentence and uses the W
 No. A caller that wants Cloudflare uses `using_provider('cloudflare')`.
 
 == Changelog ==
+
+= 0.3.0 =
+* Product pages print variation and stock text as server-rendered HTML inside main, so AI Search can index it without browser rendering.
+* Each variation row names its attributes, its SKU when it has one, its price and its stock status. Out of stock rows are kept.
+* A negative stock count prints its status without the number.
+* The number of variation rows is capped. The filter cloudflare_ai_search_stock_max_variations changes the cap.
+* Development files are kept out of distributed archives by .distignore and by .gitattributes export-ignore.
 
 = 0.2.2 =
 * The text domain is skyphusion-ai, matching the permalink to request. Saved settings stay on the same option.
