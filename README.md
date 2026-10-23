@@ -72,3 +72,19 @@ php tests/endpoint-test.php
 ```
 
 The test does not need WordPress. It defines ABSPATH before loading the endpoint and route files so their direct-access guards stay in place. It checks the AI Search address, the Workers AI and AI Gateway URLs, the credential split, and the response parsers. It uses stand-in account ids and tokens, never a real secret.
+
+## Distribution
+
+A distributed build carries the runtime only: `cloudflare-ai-search.php`, `includes/`, `assets/`, `readme.txt`, `README.md`, `LICENSE` and `uninstall.php`. The test files, the workflow and the dotfiles stay out of it. `tests/endpoint-test.php` and `tests/account-order.php` define `ABSPATH` themselves so the harness can load `includes/` directly, which is the opposite of what a shipped file should do, and `tests/provider-test.php` calls `shell_exec()`. None of that belongs in an archive a site owner installs.
+
+Two files hold that list, because two different mechanisms build archives here and neither reads the other's file:
+
+- `.distignore` is read by `wp dist-archive` and by the WordPress.org deploy action.
+- `.gitattributes` (`export-ignore`) is what GitHub applies to the "Source code" zip and tarball it generates for every tag and release. Those archives are published automatically and cannot be removed, so without `export-ignore` they carry the test files whatever the attached asset contains.
+
+Keep the two lists in step. To check what a build would contain:
+
+```bash
+git archive --format=zip --prefix=cloudflare-ai-search/ HEAD | tar -tf - 2>/dev/null || \
+  git archive --format=tar --prefix=cloudflare-ai-search/ HEAD | tar -tf -
+```
