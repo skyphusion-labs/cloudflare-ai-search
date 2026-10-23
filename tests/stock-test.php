@@ -294,3 +294,248 @@ expect('variation cap rejects a non number', cloudflare_ai_search_stock_max_vari
  */
 $GLOBALS['cfai_stock_test_filters']['cloudflare_ai_search_stock_max_variations'] = true;
 expect('variation cap rejects a boolean', cloudflare_ai_search_stock_max_variations(), 100);
+
+/* ---------- part three: the grouped product decision path ---------- */
+/*
+ * These stubs prove the DECISION PATH only: that a grouped product is read
+ * through its children, that the child name takes the leading field, and
+ * that the cap applies. They do NOT prove the shipped behaviour against real
+ * WooCommerce, because the objects here are mine and encode my own
+ * assumptions about the methods. The live check is a rendered page on a store
+ * that has a grouped product.
+ *
+ * Assertions are on the ROW ARRAYS rather than on HTML, so the translated
+ * label stubs defined above do not affect them.
+ */
+
+class Cfai_Stock_Test_Child
+{
+    public $name;
+    public $sku;
+    public $price;
+    public $status;
+    public $manages;
+    public $qty;
+
+    public function __construct($name, $sku, $price, $status, $manages = false, $qty = null)
+    {
+        $this->name = $name;
+        $this->sku = $sku;
+        $this->price = $price;
+        $this->status = $status;
+        $this->manages = $manages;
+        $this->qty = $qty;
+    }
+
+    public function get_name()
+    {
+        return $this->name;
+    }
+    public function get_sku()
+    {
+        return $this->sku;
+    }
+    public function get_price()
+    {
+        return $this->price;
+    }
+    public function get_stock_status()
+    {
+        return $this->status;
+    }
+    public function managing_stock()
+    {
+        return $this->manages;
+    }
+    public function get_stock_quantity()
+    {
+        return $this->qty;
+    }
+    public function is_type($type)
+    {
+        return $type === 'simple';
+    }
+}
+
+class Cfai_Stock_Test_Grouped
+{
+    public $children;
+
+    public function __construct($children)
+    {
+        $this->children = $children;
+    }
+    public function get_children()
+    {
+        return $this->children;
+    }
+    public function is_type($type)
+    {
+        return $type === 'grouped';
+    }
+}
+
+$GLOBALS['cfai_stock_test_products'] = array(
+    11 => new Cfai_Stock_Test_Child('Beanie', 'woo-beanie', '18', 'instock'),
+    12 => new Cfai_Stock_Test_Child('T-Shirt', 'woo-tshirt', '18', 'outofstock'),
+    13 => new Cfai_Stock_Test_Child('Logo <b>Cap</b>', 'woo-cap', '16', 'instock', true, 7),
+);
+
+if (!function_exists('wc_get_product')) {
+    function wc_get_product($id)
+    {
+        $all = $GLOBALS['cfai_stock_test_products'];
+        return isset($all[$id]) ? $all[$id] : null;
+    }
+}
+
+$GLOBALS['cfai_stock_test_filters']['cloudflare_ai_search_stock_max_variations'] = 100;
+
+$grouped = new Cfai_Stock_Test_Grouped(array(11, 12));
+$rows = cloudflare_ai_search_stock_grouped_rows($grouped);
+expect('grouped yields one row per child', count($rows), 2);
+expect('grouped child name takes the leading field', $rows[0]['attributes'], 'Beanie');
+expect('grouped child sku', $rows[0]['sku'], 'woo-beanie');
+expect('grouped child price', $rows[0]['price'], '18');
+expect('grouped child status', $rows[0]['stock_status'], 'instock');
+expect('grouped out of stock child kept', $rows[1]['stock_status'], 'outofstock');
+expect('grouped child without managed stock has no quantity', $rows[0]['quantity'], null);
+
+/* A grouped child is a product, not a variation, so no attribute summary is read. */
+$managed = cloudflare_ai_search_stock_grouped_rows(new Cfai_Stock_Test_Grouped(array(13)));
+expect('grouped child name is stripped of markup', $managed[0]['attributes'], 'Logo Cap');
+expect('grouped child managed quantity is read', $managed[0]['quantity'], 7);
+
+/* A missing child must be skipped rather than producing an empty row. */
+$withGap = cloudflare_ai_search_stock_grouped_rows(new Cfai_Stock_Test_Grouped(array(11, 999, 12)));
+expect('grouped skips a child that cannot be loaded', count($withGap), 2);
+
+/* The cap bounds grouped children too, using the same filter. */
+$GLOBALS['cfai_stock_test_filters']['cloudflare_ai_search_stock_max_variations'] = 1;
+expect('grouped honours the row cap', count(cloudflare_ai_search_stock_grouped_rows(new Cfai_Stock_Test_Grouped(array(11, 12, 13)))), 1);
+$GLOBALS['cfai_stock_test_filters']['cloudflare_ai_search_stock_max_variations'] = 100;
+
+/* Nothing usable in, nothing out. */
+expect('grouped returns empty for a non object', cloudflare_ai_search_stock_grouped_rows('nope'), array());
+expect('grouped returns empty when get_children gives a non array', cloudflare_ai_search_stock_grouped_rows(new Cfai_Stock_Test_Grouped('bad')), array());
+
+/*
+ * The is_array() guards on get_children() return the same empty list whether
+ * or not they are present, because foreach over a non array yields nothing.
+ * The difference is a PHP warning on every page view of a malformed product,
+ * so the warning is what the assertion has to observe. Without this, removing
+ * either guard leaves the suite green and the guard is decoration.
+ */
+function cfai_stock_test_warnings($callable, $argument)
+{
+    $seen = 0;
+    set_error_handler(function ($errno, $errstr) use (&$seen) {
+        $seen++;
+        return true;
+    });
+    $callable($argument);
+    restore_error_handler();
+    return $seen;
+}
+
+expect(
+    'grouped children guard emits no warning on a non array',
+    cfai_stock_test_warnings('cloudflare_ai_search_stock_grouped_rows', new Cfai_Stock_Test_Grouped('bad')),
+    0
+);
+expect(
+    'variation children guard emits no warning on a non array',
+    cfai_stock_test_warnings('cloudflare_ai_search_stock_variation_rows', new Cfai_Stock_Test_Grouped('bad')),
+    0
+);
+
+/*
+ * The type dispatch in cloudflare_ai_search_stock_rows() is the thing that
+ * actually broke: it was an allowlist of variable and simple, so a grouped
+ * product fell through to an empty array and its children never reached the
+ * index. Covering it needs the WordPress context functions, so they are
+ * stubbed from here down. Still a decision-path proof, not a WooCommerce one.
+ */
+
+class Cfai_Stock_Test_External
+{
+    public function get_sku()
+    {
+        return 'woo-ext';
+    }
+    public function get_price()
+    {
+        return '25';
+    }
+    public function get_stock_status()
+    {
+        return 'instock';
+    }
+    public function managing_stock()
+    {
+        return false;
+    }
+    public function is_type($type)
+    {
+        return $type === 'external';
+    }
+}
+
+$GLOBALS['cfai_stock_test_products'][20] = new Cfai_Stock_Test_Grouped(array(11, 12));
+$GLOBALS['cfai_stock_test_products'][21] = new Cfai_Stock_Test_External();
+$GLOBALS['cfai_stock_test_current'] = 20;
+
+if (!function_exists('is_admin')) {
+    function is_admin()
+    {
+        return false;
+    }
+}
+if (!function_exists('is_feed')) {
+    function is_feed()
+    {
+        return false;
+    }
+}
+if (!function_exists('is_embed')) {
+    function is_embed()
+    {
+        return false;
+    }
+}
+if (!function_exists('is_product')) {
+    function is_product()
+    {
+        return true;
+    }
+}
+if (!function_exists('get_the_ID')) {
+    function get_the_ID()
+    {
+        return $GLOBALS['cfai_stock_test_current'];
+    }
+}
+
+$GLOBALS['cfai_stock_test_current'] = 20;
+$dispatched = cloudflare_ai_search_stock_rows();
+expect('dispatch sends a grouped product to its children', count($dispatched), 2);
+expect('dispatch keeps the child name', $dispatched[0]['attributes'], 'Beanie');
+
+/*
+ * The allowlist is gone, so a type that is neither variable nor grouped now
+ * yields a row for itself. Under the old code this returned an empty array
+ * and an external product was invisible to the index.
+ */
+$GLOBALS['cfai_stock_test_current'] = 21;
+$ext = cloudflare_ai_search_stock_rows();
+expect('dispatch gives an unlisted type one row', count($ext), 1);
+expect('unlisted type row carries its sku', $ext[0]['sku'], 'woo-ext');
+expect('unlisted type row carries its status', $ext[0]['stock_status'], 'instock');
+expect('unlisted type row has no attribute text', $ext[0]['attributes'], '');
+
+$GLOBALS['cfai_stock_test_current'] = 20;
+
+/* The rows still render through the same builder. */
+$groupedHtml = cloudflare_ai_search_stock_html(cloudflare_ai_search_stock_grouped_rows($grouped));
+expect('grouped rows render two list items', substr_count($groupedHtml, '<li>'), 2);
+expect('grouped html names the child', strpos($groupedHtml, 'Beanie') !== false, true);
