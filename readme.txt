@@ -4,7 +4,7 @@ Tags: search, cloudflare, ai, woocommerce
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.2
+Stable tag: 0.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -65,6 +65,12 @@ The search box only lists pages. The chat button answers in a sentence. It uses 
 No. A caller that wants Cloudflare uses `using_provider('cloudflare')`.
 
 == Changelog ==
+
+= 0.3.3 =
+
+* Grouped products print their children, so AI Search can index them.
+* An unknown product type prints a row for itself instead of nothing.
+* A malformed product no longer raises a PHP warning on every page view.
 
 = 0.3.2 =
 
