@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: Skyphusion AI for Cloudflare
- * Plugin URI: https://github.com/skyphusion-labs/cloudflare-ai-search
+ * Plugin URI: https://github.com/skyphusion-labs/skyphusion-ai
  * Description: Workers AI, AI Gateway, and AI Search for WordPress and WooCommerce. Connect models from Settings, then Connectors, and search from Settings, then Skyphusion AI.
- * Version: 0.3.2
+ * Version: 0.3.3
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Conrad Rockenhaus (skyphusion)
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CLOUDFLARE_AI_SEARCH_VERSION', '0.3.2');
+define('CLOUDFLARE_AI_SEARCH_VERSION', '0.3.3');
 define('CLOUDFLARE_AI_SEARCH_FILE', __FILE__);
 
 require_once __DIR__ . '/includes/endpoint.php';

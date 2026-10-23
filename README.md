@@ -1,6 +1,6 @@
 # Skyphusion AI for Cloudflare
 
-WordPress plugin for [Workers AI](https://developers.cloudflare.com/workers-ai/), [AI Gateway](https://developers.cloudflare.com/ai-gateway/), and [AI Search](https://developers.cloudflare.com/ai-search/).
+WordPress plugin for Cloudflare® [Workers AI](https://developers.cloudflare.com/workers-ai/), [AI Gateway](https://developers.cloudflare.com/ai-gateway/), and [AI Search](https://developers.cloudflare.com/ai-search/).
 
 Visitors get a search box. They can also open the keyboard search with Ctrl+K or Command+K. You can turn on a chat button as well. You connect search from **Settings, then Skyphusion AI**. You can set the same options with WP-CLI.
 
@@ -111,6 +111,16 @@ The test does not need WordPress. It defines ABSPATH before it loads the endpoin
 
 The test also covers the stock text builder. It checks the row wording. It checks that an out-of-stock variation survives. It checks that a negative quantity prints its status without a count. It checks that a translated label really goes through `__()`. It also checks that neither product data nor a translation file can open a tag. `tests/stock-test.php` reads the ABSPATH the harness already defined, and does not set its own.
 
+### Plugin Check
+
+Run `tests/plugin-check.sh` before you open a pull request. It runs `wp plugin check` on the plugin as it ships. It builds that archive with `git archive`, so it checks the last commit and not your edits. Commit first.
+
+The script builds a WordPress harness with SQLite in `~/.cache/skyphusion-ai-plugin-check` the first time. It needs `wp`, `php`, `jq`, `curl` and `unzip`.
+
+It exits 0 when no error is new, 1 when a new error appears, and 2 when it could not measure. Exit 2 is never a pass.
+
+`tests/plugin-check-baseline.txt` lists the errors the plugin still owes. A listed error does not fail the run. Any other error does. Fix an error, then delete its line.
+
 ## Distribution
 
 A distributed build carries the runtime only. That is `cloudflare-ai-search.php`, `includes/`, `assets/`, `readme.txt`, `README.md`, `LICENSE` and `uninstall.php`. The test files, the workflow and the dotfiles stay out of it.
@@ -128,3 +138,7 @@ Keep the two lists in step. To check what a build would contain:
 git archive --format=zip --prefix=cloudflare-ai-search/ HEAD | tar -tf - 2>/dev/null || \
   git archive --format=tar --prefix=cloudflare-ai-search/ HEAD | tar -tf -
 ```
+
+## Trademarks
+
+Cloudflare, the Cloudflare logo, and Cloudflare Workers are trademarks and/or registered trademarks of Cloudflare, Inc. in the United States and other jurisdictions. This plugin is an independent work. Cloudflare, Inc. does not sponsor or endorse it. WordPress and WooCommerce are trademarks of their respective owners.

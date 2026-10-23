@@ -4,7 +4,7 @@ Tags: search, cloudflare, ai, woocommerce
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.2
+Stable tag: 0.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ Workers AI, AI Gateway, and AI Search for WordPress and WooCommerce.
 
 == Description ==
 
-This plugin connects your site to Cloudflare AI Search. Open Settings, then Skyphusion AI. Paste your public endpoint address there. You can set the same options with `wp cloudflare-ai-search`.
+This plugin connects your site to Cloudflare® AI Search. Open Settings, then Skyphusion AI. Paste your public endpoint address there. You can set the same options with `wp cloudflare-ai-search`.
 
 Visitors get a search box. They can also open the keyboard search with Ctrl+K or Command+K. You can turn on a chat button as well.
 
@@ -32,9 +32,11 @@ Example:
 
 Other plugins can call `cloudflare_ai_provider_embeddings()` and `cloudflare_ai_search_query()`. The search helper posts to the public chat/completions path. It does not send a token.
 
+Cloudflare, the Cloudflare logo, and Cloudflare Workers are trademarks and/or registered trademarks of Cloudflare, Inc. in the United States and other jurisdictions. This plugin is an independent work. Cloudflare, Inc. does not sponsor or endorse it.
+
 == External services ==
 
-AI Search. Your browser loads the search snippet from the public endpoint address you paste. The connection check posts to /search. The search helper posts to /chat/completions. The optional search-results answer posts there as well. None of these requests send an API token.
+AI Search. The plugin loads a JavaScript file from your own AI Search instance. Your browser runs that file. The file is search-snippet.es.js, pinned to snippet build 0.0.25. The plugin builds the address from the public endpoint you paste. It accepts only an https address on search.ai.cloudflare.com. It rejects any path, query, fragment or user information in that address. It checks the address again every time it reads the setting. The plugin loads no script until you paste an endpoint. It also loads none until you turn on the search box, keyboard search or chat. The connection check posts to /search. The search helper posts to /chat/completions. The optional search-results answer posts there as well. None of these requests send an API token.
 
 Workers AI and AI Gateway. The plugin sends prompts, images, speech text, and embedding texts to api.cloudflare.com. It sends them to gateway.ai.cloudflare.com instead when you set a gateway id. Each request carries the Connectors API token as a bearer token. The account id and the gateway id are not secrets.
 
@@ -65,6 +67,12 @@ The search box only lists pages. The chat button answers in a sentence. It uses 
 No. A caller that wants Cloudflare uses `using_provider('cloudflare')`.
 
 == Changelog ==
+
+= 0.3.3 =
+
+* Grouped products print their children, so AI Search can index them.
+* An unknown product type prints a row for itself instead of nothing.
+* A malformed product no longer raises a PHP warning on every page view.
 
 = 0.3.2 =
 
