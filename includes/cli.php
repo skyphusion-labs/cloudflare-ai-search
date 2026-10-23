@@ -1,6 +1,6 @@
 <?php
 /**
- * wp cloudflare-ai-search. Same settings as Settings, then Cloudflare AI.
+ * wp cloudflare-ai-search. Same settings as Settings, then Skyphusion AI.
  */
 
 if (!defined('ABSPATH') && !defined('WP_CLI')) {
@@ -179,7 +179,7 @@ class Cloudflare_AI_Search_CLI
 
         $clean = cloudflare_ai_search_sanitize($input);
         update_option('cloudflare_ai_search_settings', $clean);
-        WP_CLI::success('Saved. Settings, then Cloudflare AI, shows the same values.');
+        WP_CLI::success('Saved. Settings, then Skyphusion AI, shows the same values.');
     }
 }
 

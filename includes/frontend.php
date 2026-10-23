@@ -140,16 +140,22 @@ add_shortcode('cloudflare_ai_search', 'cloudflare_ai_search_shortcode');
 /**
  * Print one AI Search answer above the main search loop.
  *
- * WordPress search fires loop_start. WooCommerce product search also fires
+ * A classic theme fires loop_start, and WooCommerce product search also fires
  * woocommerce_before_shop_loop. The flag stops the second hook from printing again.
+ * A block theme builds that loop before it prints the doctype, so those hooks
+ * return and the block filter inserts the answer inside the results markup.
  * A transport error or an empty answer stays off the page.
  *
  * @param mixed $query
+ * @param bool  $from_block
  */
-function cloudflare_ai_search_render_lead($query = null)
+function cloudflare_ai_search_render_lead($query = null, $from_block = false)
 {
     static $done = false;
     if ($done || is_admin()) {
+        return;
+    }
+    if (function_exists('wp_is_block_theme') && wp_is_block_theme() && !$from_block) {
         return;
     }
     if ($query instanceof WP_Query && !$query->is_main_query()) {
@@ -183,3 +189,37 @@ function cloudflare_ai_search_render_lead($query = null)
 }
 add_action('woocommerce_before_shop_loop', 'cloudflare_ai_search_render_lead', 5);
 add_action('loop_start', 'cloudflare_ai_search_render_lead', 5);
+
+/**
+ * Insert the search answer inside the results block on a block theme.
+ *
+ * @param string $html
+ * @param array  $block
+ * @return string
+ */
+function cloudflare_ai_search_lead_block($html, $block)
+{
+    if (!function_exists('wp_is_block_theme') || !wp_is_block_theme()) {
+        return $html;
+    }
+    $name = isset($block['blockName']) ? (string) $block['blockName'] : '';
+    if ($name !== 'woocommerce/product-collection' && $name !== 'core/post-template') {
+        return $html;
+    }
+    if (!is_search() || is_feed() || is_embed() || is_admin()) {
+        return $html;
+    }
+    static $placed = false;
+    if ($placed) {
+        return $html;
+    }
+    ob_start();
+    cloudflare_ai_search_render_lead(null, true);
+    $lead = ob_get_clean();
+    if (!is_string($lead) || $lead === '') {
+        return $html;
+    }
+    $placed = true;
+    return $lead . $html;
+}
+add_filter('render_block', 'cloudflare_ai_search_lead_block', 10, 2);

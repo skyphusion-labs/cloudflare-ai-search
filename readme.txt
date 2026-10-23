@@ -1,10 +1,10 @@
-=== Cloudflare Workers AI, Gateway, and Search ===
+=== Skyphusion AI for Cloudflare ===
 Contributors: skyphusion
 Tags: search, cloudflare, ai, woocommerce
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,9 +12,9 @@ Workers AI, AI Gateway, and AI Search for WordPress and WooCommerce.
 
 == Description ==
 
-Connect a Cloudflare AI Search public endpoint from Settings, then Cloudflare AI. The same settings are available with `wp cloudflare-ai-search`. Visitors can use a search box, open search with Ctrl+K or Command+K, and optionally ask a chat button.
+Connect a public AI Search endpoint from Settings, then Skyphusion AI. The same settings are available with `wp cloudflare-ai-search`. Visitors can use a search box, open search with Ctrl+K or Command+K, and optionally ask a chat button.
 
-WordPress and WooCommerce call Workers AI through the AI Client. The provider id is `cloudflare`. Open Settings, then Connectors, and save the API token there. This plugin does not store the token. Set the account id on the Cloudflare AI screen, and an optional AI Gateway slug when calls should go through the gateway.
+WordPress and WooCommerce call Workers AI through the AI Client. The provider id is `cloudflare`. Open Settings, then Connectors, and save the API token there. This plugin does not store the token. Set the account id on the Skyphusion AI screen, and an optional AI Gateway slug when calls should go through the gateway.
 
 The screen links to Workers AI, AI Gateway, and AI Search.
 
@@ -38,7 +38,7 @@ Workers AI and AI Gateway: prompts, images, speech text, and embedding texts are
 
 1. Upload the plugin and activate it.
 2. In Cloudflare, turn on the public endpoint for your AI Search instance.
-3. In WordPress, open Settings, then Cloudflare AI, and paste that address.
+3. In WordPress, open Settings, then Skyphusion AI, and paste that address.
 4. Paste the account id. Open Settings, then Connectors, and save the Workers AI API token for Cloudflare.
 
 == Frequently Asked Questions ==
@@ -53,13 +53,18 @@ Settings, then Connectors. The environment variable or constant `CLOUDFLARE_API_
 
 = Does the chat button cost extra? =
 
-The search box lists pages. The chat button answers in a sentence and uses the Cloudflare AI allowance. You can leave the chat button off.
+The search box lists pages. The chat button answers in a sentence and uses the Workers AI allowance. You can leave the chat button off.
 
 = Does this replace another AI provider? =
 
 No. A caller that wants Cloudflare uses `using_provider('cloudflare')`.
 
 == Changelog ==
+
+= 0.2.1 =
+* The plugin name is Skyphusion AI for Cloudflare. The author is Conrad Rockenhaus (skyphusion).
+* On a block theme, the search-results answer is inserted in the results block so it stays inside the document.
+* Direct requests for the endpoint and route files exit before they define anything.
 
 = 0.2.0 =
 * Register a WordPress AI Client provider for Workers AI text, vision, images, and speech, through AI Gateway when a gateway id is set.

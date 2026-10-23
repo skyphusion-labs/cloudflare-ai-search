@@ -5,7 +5,12 @@
  * AI Search stays on the public endpoint in endpoint.php. These helpers build
  * the authenticated Workers AI URLs, and the same paths through AI Gateway
  * when a gateway id is set. They do not send a request and they do not store a token.
+ * The standalone test defines ABSPATH before it loads this file.
  */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 /**
  * 32 hex characters, or an empty string.

@@ -1,8 +1,8 @@
-# Cloudflare Workers AI, Gateway, and Search
+# Skyphusion AI for Cloudflare
 
 WordPress plugin for [Workers AI](https://developers.cloudflare.com/workers-ai/), [AI Gateway](https://developers.cloudflare.com/ai-gateway/), and [AI Search](https://developers.cloudflare.com/ai-search/).
 
-Visitors get a search box, a Ctrl+K or Command+K search window, and an optional chat button. The person running the site connects search from **Settings, then Cloudflare AI**. The same settings can be changed with WP-CLI.
+Visitors get a search box, a Ctrl+K or Command+K search window, and an optional chat button. The person running the site connects search from **Settings, then Skyphusion AI**. The same settings can be changed with WP-CLI.
 
 WordPress and WooCommerce call Workers AI through the WordPress AI Client. The provider id is `cloudflare`. Text, vision, JSON, tools, images, and speech are on that provider. Embeddings and the public AI Search endpoint are callable from plugin code. The plugin does not take over another provider that is already configured. A caller that wants Cloudflare uses `using_provider('cloudflare')`.
 
@@ -13,7 +13,7 @@ GPL-2.0-or-later. Requires WordPress 6.4 and PHP 8.0. The AI Client provider reg
 ## Connect a site
 
 1. In the Cloudflare dashboard, create an AI Search instance that crawls the site, and turn on the public endpoint.
-2. In WordPress, open **Settings, then Cloudflare AI**.
+2. In WordPress, open **Settings, then Skyphusion AI**.
 3. Paste the address (`https://something.search.ai.cloudflare.com/`) and save.
 4. Choose the search box, the keyboard search, and the chat button. Save again.
 5. Press **Check connection**.
@@ -44,7 +44,7 @@ The default text model is `@cf/meta/llama-3.3-70b-instruct-fp8-fast`. A prompt t
 
 ## Command line
 
-`wp cloudflare-ai-search` writes the same option the dashboard saves. A later save in **Settings, then Cloudflare AI** shows those values.
+`wp cloudflare-ai-search` writes the same option the dashboard saves. A later save in **Settings, then Skyphusion AI** shows those values.
 
 ```bash
 wp cloudflare-ai-search status
@@ -61,10 +61,14 @@ The chat button answers in a sentence and uses more of the Cloudflare allowance.
 - AI Search. The browser loads the snippet from the public address you paste. The site sends a question to `{endpoint}/search` when you check the connection. `cloudflare_ai_search_query()` and the search-results switch send the question to `{endpoint}/chat/completions`. No API token is sent. Search feeds and embeds do not print the answer.
 - Workers AI and AI Gateway. Prompts, images, speech text, and embedding texts go to `api.cloudflare.com`, or to `gateway.ai.cloudflare.com` when a gateway id is set. The request uses the Connectors API token as a bearer. Account ids and gateway ids are not secrets. The token is the Connectors option `connectors_ai_cloudflare_api_key`, or `CLOUDFLARE_API_KEY` from the environment and then the PHP constant.
 
+## Directory
+
+The display name is Skyphusion AI for Cloudflare. Submit it under the permalink `skyphusion-ai`. That permalink is permanent, and it must not begin with `cloudflare`. The GitHub repository name, the text domain, the settings page slug, and the option key stay `cloudflare-ai-search`, so an existing install keeps its settings. `Contributors` in readme.txt stays the wordpress.org username `skyphusion`.
+
 ## Develop
 
 ```bash
 php tests/endpoint-test.php
 ```
 
-The test does not need WordPress. It checks the AI Search address, the Workers AI and AI Gateway URLs, the credential split, and the response parsers. It uses stand-in account ids and tokens, never a real secret.
+The test does not need WordPress. It defines ABSPATH before loading the endpoint and route files so their direct-access guards stay in place. It checks the AI Search address, the Workers AI and AI Gateway URLs, the credential split, and the response parsers. It uses stand-in account ids and tokens, never a real secret.

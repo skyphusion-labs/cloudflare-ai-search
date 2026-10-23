@@ -1,6 +1,6 @@
 <?php
 /**
- * Settings screen. Settings, then Cloudflare AI. The page slug stays cloudflare-ai-search.
+ * Settings screen. Settings, then Skyphusion AI. The page slug stays cloudflare-ai-search.
  */
 
 if (!defined('ABSPATH')) {
@@ -375,8 +375,8 @@ function cloudflare_ai_search_field_lead_search()
 function cloudflare_ai_search_add_menu()
 {
     add_options_page(
-        'Cloudflare AI',
-        'Cloudflare AI',
+        'Skyphusion AI for Cloudflare',
+        'Skyphusion AI',
         'manage_options',
         'cloudflare-ai-search',
         'cloudflare_ai_search_render_page'
@@ -419,7 +419,7 @@ function cloudflare_ai_search_admin_notice()
         return;
     }
     $url = admin_url('options-general.php?page=cloudflare-ai-search');
-    echo '<div class="notice notice-warning"><p>Cloudflare AI search is not connected yet. <a href="' . esc_url($url) . '">Add the AI Search address</a>.</p></div>';
+    echo '<div class="notice notice-warning"><p>Skyphusion AI is not connected yet. <a href="' . esc_url($url) . '">Add the AI Search address</a>.</p></div>';
 }
 add_action('admin_notices', 'cloudflare_ai_search_admin_notice');
 
@@ -455,7 +455,7 @@ function cloudflare_ai_search_render_page()
     }
 
     echo '<div class="wrap">';
-    echo '<h1>Cloudflare AI</h1>';
+    echo '<h1>Skyphusion AI for Cloudflare</h1>';
     echo '<p>Workers AI, AI Gateway, and AI Search. Visitors can still search this site in their own words. WordPress and WooCommerce can call the same Cloudflare account for text, images, speech, and embeddings.</p>';
     cloudflare_ai_search_render_product_links();
 
