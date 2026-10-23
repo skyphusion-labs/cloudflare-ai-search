@@ -76,14 +76,14 @@ class Cloudflare_AI_Provider extends AbstractApiProvider
     {
         $entry = cloudflare_ai_provider_catalog_entry($modelMetadata->getId());
         if ($entry === null) {
-            throw new InvalidArgumentException(__('That Cloudflare model is not in the catalog.', 'skyphusion-ai'));
+            throw new InvalidArgumentException(esc_html__('That Cloudflare model is not in the catalog.', 'skyphusion-ai'));
         }
         if ($entry['kind'] === 'image') {
             return new Cloudflare_AI_Image_Model($modelMetadata, $providerMetadata);
         }
         if ($entry['kind'] === 'speech') {
             if (!class_exists('Cloudflare_AI_Speech_Model', false)) {
-                throw new InvalidArgumentException(__('Speech generation is not available in this WordPress version.', 'skyphusion-ai'));
+                throw new InvalidArgumentException(esc_html__('Speech generation is not available in this WordPress version.', 'skyphusion-ai'));
             }
             return new Cloudflare_AI_Speech_Model($modelMetadata, $providerMetadata);
         }
@@ -134,7 +134,7 @@ class Cloudflare_AI_Model_Directory implements ModelMetadataDirectoryInterface
     {
         $entry = $this->find($modelId);
         if ($entry === null) {
-            throw new InvalidArgumentException(__('That Cloudflare model is not in the catalog.', 'skyphusion-ai'));
+            throw new InvalidArgumentException(esc_html__('That Cloudflare model is not in the catalog.', 'skyphusion-ai'));
         }
         return cloudflare_ai_provider_model_metadata($entry);
     }
@@ -198,7 +198,7 @@ function cloudflare_ai_provider_model_metadata(array $entry): ModelMetadata
 function cloudflare_ai_provider_post(AbstractApiBasedModel $model, $url, array $payload)
 {
     if ($url === '') {
-        throw new RuntimeException(__('Add the Cloudflare account ID before using Workers AI.', 'skyphusion-ai'));
+        throw new RuntimeException(esc_html__('Add the Cloudflare account ID before using Workers AI.', 'skyphusion-ai'));
     }
     $key = '';
     try {
@@ -215,7 +215,7 @@ function cloudflare_ai_provider_post(AbstractApiBasedModel $model, $url, array $
     }
     $credentials = cloudflare_ai_provider_resolve_credentials($key, $account);
     if ($credentials['token'] === '' || $credentials['account_id'] === '') {
-        throw new RuntimeException(__('Cloudflare Workers AI is not connected. Add the account ID and the API token on Connectors.', 'skyphusion-ai'));
+        throw new RuntimeException(esc_html__('Cloudflare Workers AI is not connected. Add the account ID and the API token on Connectors.', 'skyphusion-ai'));
     }
 
     $request = new Request(
@@ -323,7 +323,7 @@ class Cloudflare_AI_Text_Model extends AbstractApiBasedModel implements TextGene
         $posted = cloudflare_ai_provider_post($this, $url, cloudflare_ai_provider_chat_body($spec));
         $parsed = cloudflare_ai_provider_read_text($posted['data']);
         if (!$parsed['candidates']) {
-            throw new RuntimeException(__('Cloudflare returned no text.', 'skyphusion-ai'));
+            throw new RuntimeException(esc_html__('Cloudflare returned no text.', 'skyphusion-ai'));
         }
 
         $candidates = array();
@@ -370,7 +370,7 @@ class Cloudflare_AI_Image_Model extends AbstractApiBasedModel implements ImageGe
     {
         $text = cloudflare_ai_provider_prompt_text($prompt);
         if ($text === '') {
-            throw new InvalidArgumentException(__('Image generation needs a text prompt.', 'skyphusion-ai'));
+            throw new InvalidArgumentException(esc_html__('Image generation needs a text prompt.', 'skyphusion-ai'));
         }
         $account = cloudflare_ai_provider_request_account($this);
         $url = cloudflare_ai_provider_run_url(
@@ -381,7 +381,7 @@ class Cloudflare_AI_Image_Model extends AbstractApiBasedModel implements ImageGe
         $posted = cloudflare_ai_provider_post($this, $url, array('prompt' => $text));
         $image = cloudflare_ai_provider_read_image($posted['data']);
         if ($image === '') {
-            throw new RuntimeException(__('Cloudflare returned no image.', 'skyphusion-ai'));
+            throw new RuntimeException(esc_html__('Cloudflare returned no image.', 'skyphusion-ai'));
         }
         $file = new File('data:image/jpeg;base64,' . $image);
         return new GenerativeAiResult(
