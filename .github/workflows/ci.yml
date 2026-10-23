@@ -22,11 +22,46 @@ jobs:
       - name: plugin checks
         run: php tests/endpoint-test.php
 
+  # NOT a second copy of `ci`. It used to run exactly `php tests/endpoint-test.php`,
+  # the same command as the job above, which can only fail when `ci` has already
+  # failed for the same reason: a required context that adds no information and
+  # costs a full run (issue #3).
+  #
+  # IT IS REPLACED RATHER THAN DELETED, and that is a deliberate call. `coverage`
+  # is a REQUIRED status check on `main` with a strict policy, so a deleted job
+  # never reports and every pull request blocks permanently rather than failing.
+  # Dropping the required context is a protection-rules change and not this
+  # file's to make, so the job stays and earns its place.
   coverage:
     name: coverage
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: plugin checks
-        run: php tests/endpoint-test.php
+      # ENUMERATED FROM git ls-files, never a glob. `host/*.php` in ggc#11
+      # returned 7 of 8 files and the job went green on the eighth, which is
+      # the failure a glob makes and a listing cannot: a file the pattern
+      # misses is indistinguishable from a file that passed.
+      #
+      # THE FLOOR IS THE PART THAT MAKES THIS A GATE. An empty or truncated
+      # listing must FAIL, not pass quietly over nothing. The first draft of
+      # this step relied on `--no-run-if-empty` for that and the comment
+      # claimed it, which was wrong and was caught by testing the claim:
+      # `printf '' | xargs -0 --no-run-if-empty -n1 php -l` exits 0, so an
+      # empty list reported SUCCESS. That flag only stops php being invoked
+      # with no argument; it says nothing about the exit status. 15 is well
+      # under the 19 tracked today, so the floor catches a broken listing
+      # without tripping on an ordinary deletion.
+      #
+      # `xargs -0 -n1` so one bad file fails the step rather than being
+      # averaged away, and -0 with `ls-files -z` so a path with a space or a
+      # newline cannot split into two names.
+      - name: php -l over every tracked PHP file
+        run: |
+          n=$(git ls-files '*.php' | wc -l)
+          if [ "$n" -lt 15 ]; then
+            echo "only $n tracked PHP file(s); the listing is wrong, not the tree" >&2
+            exit 1
+          fi
+          git ls-files -z '*.php' | xargs -0 -n1 php -l
+          echo "linted $n tracked PHP file(s)"
