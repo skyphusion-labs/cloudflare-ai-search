@@ -12,15 +12,17 @@ Workers AI, AI Gateway, and AI Search for WordPress and WooCommerce.
 
 == Description ==
 
-Connect a public AI Search endpoint from Settings, then Skyphusion AI. The same settings are available with `wp cloudflare-ai-search`. Visitors can use a search box, open search with Ctrl+K or Command+K, and optionally ask a chat button.
+This plugin connects your site to Cloudflare AI Search. Open Settings, then Skyphusion AI. Paste your public endpoint address there. You can set the same options with `wp cloudflare-ai-search`.
 
-WordPress and WooCommerce call Workers AI through the AI Client. The provider id is `cloudflare`. Open Settings, then Connectors, and save the API token there. This plugin does not store the token. Set the account id on the Skyphusion AI screen, and an optional AI Gateway slug when calls should go through the gateway.
+Visitors get a search box. They can also open the keyboard search with Ctrl+K or Command+K. You can turn on a chat button as well.
 
-The screen links to Workers AI, AI Gateway, and AI Search.
+WordPress and WooCommerce call Workers AI through the AI Client. The provider id is `cloudflare`. Open Settings, then Connectors. Save the API token there. This plugin does not store the token.
 
-An optional switch prints an AI Search answer above WordPress and WooCommerce search results. It is off until you turn it on. Errors stay off the page.
+Set the account id on the Skyphusion AI screen. Add a gateway id only when calls should go through AI Gateway. The screen also links to Workers AI, AI Gateway, and AI Search.
 
-A single product page prints each variation's attributes, SKU, price, and stock, and a simple product's stock, as text in the page, so a crawler that does not run JavaScript can index it.
+One switch prints an AI Search answer above WordPress and WooCommerce search results. The switch is off until you turn it on. Errors stay off the page.
+
+A single product page also prints its stock as text. Each variation names its attributes, its SKU, its price, and its stock. A simple product names its stock. The text sits in the page itself. A crawler that does not run JavaScript can index it.
 
 Shortcode: `[cloudflare_ai_search]`
 
@@ -28,34 +30,35 @@ Example:
 
 `wp_ai_client_prompt( 'Write a product summary.' )->using_provider( 'cloudflare' );`
 
-`cloudflare_ai_provider_embeddings()` and `cloudflare_ai_search_query()` are available to other plugins. The search helper posts to the public chat/completions path and does not send a token.
+Other plugins can call `cloudflare_ai_provider_embeddings()` and `cloudflare_ai_search_query()`. The search helper posts to the public chat/completions path. It does not send a token.
 
 == External services ==
 
-AI Search: the browser loads the snippet from the public address you paste. Checking the connection posts to /search. The search helper and the optional search-results answer post to /chat/completions. No API token is sent.
+AI Search. Your browser loads the search snippet from the public endpoint address you paste. The connection check posts to /search. The search helper posts to /chat/completions. The optional search-results answer posts there as well. None of these requests send an API token.
 
-Workers AI and AI Gateway: prompts, images, speech text, and embedding texts are sent to api.cloudflare.com, or to gateway.ai.cloudflare.com when a gateway id is set. The Connectors API token is sent as a bearer. The account id and gateway id are not secrets.
+Workers AI and AI Gateway. The plugin sends prompts, images, speech text, and embedding texts to api.cloudflare.com. It sends them to gateway.ai.cloudflare.com instead when you set a gateway id. Each request carries the Connectors API token as a bearer token. The account id and the gateway id are not secrets.
 
 == Installation ==
 
 1. Upload the plugin and activate it.
 2. In Cloudflare, turn on the public endpoint for your AI Search instance.
-3. In WordPress, open Settings, then Skyphusion AI, and paste that address.
-4. Paste the account id. Open Settings, then Connectors, and save the Workers AI API token for Cloudflare.
+3. In WordPress, open Settings, then Skyphusion AI. Paste that address.
+4. Paste the account id.
+5. Open Settings, then Connectors. Save the Workers AI API token for Cloudflare.
 
 == Frequently Asked Questions ==
 
-= Where do I get the address? =
+= Where do I get the endpoint address? =
 
-Cloudflare dashboard, AI Search, your instance, Settings, Public endpoint. Copy the address that ends in search.ai.cloudflare.com. The plugin screen links there.
+Open the Cloudflare dashboard. Go to AI Search, then your instance, then Settings, then Public endpoint. Copy the address that ends in search.ai.cloudflare.com. The Skyphusion AI screen links there.
 
 = Where does the API token go? =
 
-Settings, then Connectors. The environment variable or constant `CLOUDFLARE_API_KEY` is used first. You can prefix the token with the account id as `account-id:api-token`. This plugin's own option never stores the token.
+Save it in Settings, then Connectors. The plugin reads the `CLOUDFLARE_API_KEY` environment variable or constant first. You can put the account id in front of the token as `account-id:api-token`. This plugin's own option never stores the token.
 
 = Does the chat button cost extra? =
 
-The search box lists pages. The chat button answers in a sentence and uses the Workers AI allowance. You can leave the chat button off.
+The search box only lists pages. The chat button answers in a sentence. It uses your Workers AI allowance. You can leave the chat button off.
 
 = Does this replace another AI provider? =
 
@@ -64,27 +67,27 @@ No. A caller that wants Cloudflare uses `using_provider('cloudflare')`.
 == Changelog ==
 
 = 0.3.0 =
-* Product pages print variation and stock text as server-rendered HTML inside main, so AI Search can index it without browser rendering.
-* Each variation row names its attributes, its SKU when it has one, its price and its stock status. Out of stock rows are kept.
+* Product pages now print variation and stock text inside main. The server renders that HTML. AI Search can index it without browser rendering.
+* Each variation row names its attributes. It names its SKU when it has one. It also names its price and its stock status. Out of stock rows are kept.
 * A negative stock count prints its status without the number.
 * The number of variation rows is capped. The filter cloudflare_ai_search_stock_max_variations changes the cap.
-* Development files are kept out of distributed archives by .distignore and by .gitattributes export-ignore.
+* Development files are now kept out of distributed archives. .distignore and .gitattributes export-ignore hold that list.
 
 = 0.2.2 =
-* The text domain is skyphusion-ai, matching the permalink to request. Saved settings stay on the same option.
-* Search snippet markup is escaped before it is printed. Workers AI error text is escaped before it is thrown.
-* A direct request for the WP-CLI file exits.
+* The text domain is now skyphusion-ai. It matches the permalink we request. Saved settings stay on the same option.
+* The plugin escapes the search snippet markup before it prints it. It also escapes Workers AI error text before it throws it.
+* A direct request for the WP-CLI file now exits.
 
 = 0.2.1 =
-* The plugin name is Skyphusion AI for Cloudflare. The author is Conrad Rockenhaus (skyphusion).
-* On a block theme, the search-results answer is inserted in the results block so it stays inside the document.
-* Direct requests for the endpoint and route files exit before they define anything.
+* The plugin name is now Skyphusion AI for Cloudflare. The author is Conrad Rockenhaus (skyphusion).
+* On a block theme, the search-results answer goes inside the results block. It stays inside the document.
+* Direct requests for the endpoint and route files now exit before they define anything.
 
 = 0.2.0 =
-* Register a WordPress AI Client provider for Workers AI text, vision, images, and speech, through AI Gateway when a gateway id is set.
+* Register a WordPress AI Client provider for Workers AI. It covers text, vision, images, and speech. Calls go through AI Gateway when you set a gateway id.
 * Link Workers AI, AI Gateway, AI Search, and Connectors from the settings screen.
 * Add embeddings and public AI Search helpers for WordPress and WooCommerce.
-* Optional AI Search answer above search results, off by default. The helper asks /chat/completions and reads chunks as sources. Search feeds and embeds do not print that answer.
+* Add an optional AI Search answer above search results, off by default. The helper asks /chat/completions and reads chunks as sources. Search feeds and embeds do not print that answer.
 
 = 0.1.0 =
 * Settings screen, WP-CLI command, search box, keyboard search, and optional chat button.
