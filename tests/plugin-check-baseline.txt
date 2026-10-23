@@ -1,0 +1,9 @@
+# Known Plugin Check ERRORS in the SHIPPED artifact (git archive, not the tree).
+# This file is the list of what is owed. A new error fails tests/plugin-check.sh;
+# a listed one does not. Fix one, then DELETE its line (the script says FIXED).
+# Format: file<TAB>code<TAB>count. Never raise a count to make a run pass.
+# Recorded 2026-10-23 at main 23f33fe with plugin-check from wordpress.org latest.
+# The six TextDomainMismatch lines clear with the deep rename (slug to skyphusion-ai).
+# strip_tags at includes/stock.php:209 should become wp_strip_all_tags().
+includes/stock.php	WordPress.WP.AlternativeFunctions.strip_tags_strip_tags	1
+includes/stock.php	WordPress.WP.I18n.TextDomainMismatch	6

@@ -1,0 +1,42 @@
+# skyphusion-ai (agent contract)
+
+WordPress plugin, public, GPL-2.0, a revenue item. The GitHub repo was renamed from
+`cloudflare-ai-search`; the plugin directory, main file, function prefix, option keys
+and release zip prefix still use the old name until the deep-rename issue lands. Do
+not change the shipped prefix as a side effect of other work.
+
+## Gates
+
+- `php tests/endpoint-test.php` is the unit gate (CI job `ci`).
+- `tests/plugin-check.sh` is the WordPress Plugin Check gate. **Run it on every change
+  to the plugin, before opening the PR.** Conrad's standard (2026-10-23).
+
+## Plugin Check: check the ARTIFACT, never the tree
+
+The tree carries `tests/` and dotfiles that `.gitattributes` `export-ignore` strips
+from every archive. Measured 2026-10-23: the tree reports 38 errors and 104 warnings,
+the shipped archive 7 errors and 3 warnings. The script therefore builds the archive
+with `git archive` (prefix `cloudflare-ai-search/`, what the release zip uses today)
+and checks that. It archives a committed ref (`PLUGIN_CHECK_REF`, default HEAD), so
+commit before you run it.
+
+- Exit 0: no error beyond the baseline. Exit 1: a new error. Exit 2: COULD NOT
+  MEASURE (missing tool, no network, harness broken). Exit 2 is not a pass; report it.
+- `tests/plugin-check-baseline.txt` is the owed list: file, code, count, per line.
+  A new (file, code) pair, or a higher count, fails. Never raise a count or add a line
+  to get green; fix the finding or escalate. When a listed error is fixed the script
+  prints FIXED; delete that line in the same PR.
+- Warnings print and never gate.
+- Prove the gate can fail after you touch it:
+  `PLUGIN_CHECK_PLANT='includes/frontend.php:function x() { return strip_tags($_GET["a"]); }' tests/plugin-check.sh`
+  must exit 1 and name the planted error; without the variable it must exit 0.
+- `wp-cli` under PHP 8.5 prints `Deprecated: Case statements followed by a semicolon`
+  from its bundled react/promise. That is noise.
+- Do not use `wp core download` (phar memory exhaustion); the script unzips
+  wordpress.org's latest.zip. The sqlite-database-integration URL has no version in it
+  on purpose; a versioned URL 404s.
+
+## Style
+
+Docs the end user reads (`README.md`, `readme.txt`) are Simplified Technical English.
+This file is not. No em-dashes or en-dashes anywhere.
