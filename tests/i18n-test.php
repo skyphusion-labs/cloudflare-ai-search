@@ -24,8 +24,13 @@ $i18n_root = dirname(__DIR__);
 
 /** Files claimed to be translated, and the minimum each must carry. */
 $i18n_floors = array(
-    'includes/settings.php' => 38,
-    'includes/cli.php' => 6,
+    'includes/settings.php' => 41,
+    // 7 and not 6 since the #53/#48 merge, measured with this file's own
+    // i18n_calls(). Resolving the accent-color validation fail-closed added
+    // one call, the "Cannot validate the accent color" error. A floor is a
+    // minimum, so 6 would still have PASSED while no longer covering the
+    // call the resolution introduced.
+    'includes/cli.php' => 7,
     'includes/provider.php' => 6,
     'includes/provider-models.php' => 8,
     'includes/provider-speech.php' => 2,

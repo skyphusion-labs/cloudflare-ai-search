@@ -206,7 +206,30 @@ class Cloudflare_AI_Search_CLI
                 WP_CLI::error(__('That address has to be an https link ending in search.ai.cloudflare.com.', 'skyphusion-ai')); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- names the required host. It does not load a file.
             }
         }
-        if (array_key_exists('accent-color', $assoc) && function_exists('sanitize_hex_color')) {
+        if (array_key_exists('accent-color', $assoc)) {
+            // FAILS CLOSED. The old form made the validator's own availability
+            // a CONDITION of the outer if, which skipped the whole check when
+            // it was missing and
+            // let the command report "Saved." having changed nothing. A
+            // validation that disappears with its validator permits exactly the
+            // case nobody tested, so absence is an error rather than a pass.
+            //
+            // THE OLD FORM IS DESCRIBED AND NOT QUOTED, deliberately.
+            // tests/settings-sanitize-test.php greps THIS FILE for it, and a
+            // text search cannot tell code from a comment about code: quoting
+            // it here puts the defect back in the scanner's search space and
+            // reds the guard on a correct tree. Measured, twice in one day on
+            // two repos.
+            //
+            // THE KEY IS `accent-color` AND NOT `color` (PR #48). The shim in
+            // cloudflare_ai_search_cli_accent_color() runs earlier, normalises
+            // `--color` into `accent-color` and unsets `color`, so by here the
+            // deprecated flag has already become the declared one. Fixing the
+            // fail-open on the OLD key, which is what this change originally
+            // did, would have left the live path unguarded.
+            if (!function_exists('sanitize_hex_color')) {
+                WP_CLI::error(__('Cannot validate the accent color: sanitize_hex_color() is unavailable.', 'skyphusion-ai'));
+            }
             if (!sanitize_hex_color((string) $assoc['accent-color'])) {
                 WP_CLI::error(__('Accent color has to be a hex color such as #1B3A32.', 'skyphusion-ai'));
             }
