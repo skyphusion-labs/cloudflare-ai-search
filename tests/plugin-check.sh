@@ -11,8 +11,9 @@
 # fatal. A baseline entry that no longer occurs is reported as FIXED so the
 # list is trimmed. Warnings are printed and never gate.
 #
-# EXIT: 0 = no new error. 1 = new error. 2 = COULD NOT MEASURE (no harness,
-# no network, tool failure). Exit 2 is never a pass.
+# EXIT: 0 = no new error. 1 = new error, or a baseline that contradicts its
+# own OWED: heading. 2 = COULD NOT MEASURE (no harness, no network, tool
+# failure). Exit 2 is never a pass.
 #
 # Env:
 #   PLUGIN_CHECK_HOME  harness dir (default ~/.cache/skyphusion-ai-plugin-check)
@@ -40,6 +41,94 @@ cannot() { echo "plugin-check: COULD NOT MEASURE: $*" >&2; exit 2; }
 for tool in git php wp curl unzip jq; do
     command -v "$tool" >/dev/null 2>&1 || cannot "missing tool '$tool' (macOS: brew install wp-cli jq)"
 done
+
+# THE BASELINE MUST AGREE WITH ITSELF. The OWED: heading states a total and a
+# file count in PROSE; the gate reads only the data LINES. Those are two facts
+# and nothing compared them, so on 2026-10-23 three prose figures said 66 while
+# the lines summed to 67 and every run stayed green. A reader decides what is
+# owed from the heading, so a stale heading is a wrong answer to the question
+# this file exists to answer.
+#
+# Derived, never hardcoded: the total and the distinct-file count come from the
+# lines themselves. Runs before the harness because it needs no network and no
+# WordPress, so a self-contradicting baseline fails in about 30ms.
+#
+# The heading names its own family ("OWED: TextDomainMismatch, N calls across
+# M files") and only lines whose code ENDS with that family are counted, so a
+# future baseline carrying a second code does not break the arithmetic.
+#
+# FLOOR, and it is the part that stops this guard having the disease it cures:
+# a heading claiming 0, or a heading no data line matches, FAILS rather than
+# satisfying 0 == 0. A guard that passes on an empty input is not a guard.
+#
+# Each message is ONE line on purpose. The awk SOURCE wraps with backslashes;
+# the printed text never does. A wrapped diagnostic cannot be grepped, and its
+# tail gets orphaned from its head by the deprecation noise wp-cli interleaves.
+check_baseline_self_consistency() {
+    [ -f "$BASELINE" ] || cannot "baseline $BASELINE not found"
+    awk -F'\t' '
+        function say(s) { print "plugin-check: " s > "/dev/stderr" }
+        /^# OWED:/ {
+            if (match($0, /OWED: [A-Za-z0-9._]+, [0-9]+ calls across [0-9]+ files/)) {
+                split(substr($0, RSTART, RLENGTH), p, /[ ,]+/)
+                hcode = p[2]; hcalls = p[3] + 0; hfiles = p[6] + 0
+                seen = 1
+            } else {
+                say("baseline OWED heading is unparseable: " $0)
+                say("expected the form: # OWED: <Code>, <N> calls across <M> files")
+                bad = 1
+            }
+            next
+        }
+        /^#/ { next }
+        $0 ~ /^[ \t]*$/ { next }
+        NF == 3 {
+            lines++
+            if (seen) {
+                n = length(hcode)
+                if (substr($2, length($2) - n + 1) == hcode) {
+                    sum += $3; files[$1] = 1; matched++
+                }
+            }
+            next
+        }
+        END {
+            if (bad) { exit 1 }
+            if (!seen) {
+                say("baseline has no OWED: heading, so the self-sum check did not apply.")
+                exit 0
+            }
+            if (hcalls < 1) {
+                say("BASELINE SELF-CHECK FAILED: the OWED heading claims " hcalls \
+                    " calls. A heading that owes nothing is vacuous; delete it.")
+                exit 1
+            }
+            if (matched + 0 < 1) {
+                say("BASELINE SELF-CHECK FAILED: the OWED heading names " hcode \
+                    " but no data line carries that code; it describes nothing.")
+                exit 1
+            }
+            if (sum + 0 != hcalls) {
+                say("BASELINE SELF-CHECK FAILED: the OWED heading says " hcalls " " \
+                    hcode " calls, but its data lines sum to " sum + 0 ".")
+                say("Fix whichever side is wrong; the data lines are what the gate enforces.")
+                exit 1
+            }
+            nfiles = length(files)
+            if (nfiles != hfiles) {
+                say("BASELINE SELF-CHECK FAILED: the OWED heading says " hfiles \
+                    " files, but " nfiles " distinct file(s) carry " hcode ".")
+                say("Fix whichever side is wrong; the data lines are what the gate enforces.")
+                exit 1
+            }
+            say("baseline agrees with itself: " hcalls " " hcode " calls across " \
+                hfiles " files, summed from " matched + 0 " data line(s).")
+        }
+    ' "$BASELINE"
+    return $?
+}
+
+check_baseline_self_consistency || exit 1
 
 # wp-cli's bundled libraries print PHP 8.5 deprecation noise; it is not failure.
 export WP_CLI_PHP_ARGS='-d memory_limit=-1'
