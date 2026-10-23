@@ -55,6 +55,8 @@ function cloudflare_ai_search_script_tag($tag, $handle, $src)
     if ($handle !== 'cloudflare-ai-search') {
         return $tag;
     }
+    // The handle is already registered with wp_enqueue_script. This only sets type=module.
+    // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript
     return '<script type="module" src="' . esc_url($src) . '"></script>' . "\n";
 }
 add_filter('script_loader_tag', 'cloudflare_ai_search_script_tag', 10, 3);
@@ -94,6 +96,23 @@ function cloudflare_ai_search_component($tag, $settings)
     );
 }
 
+function cloudflare_ai_search_snippet_allowed_html()
+{
+    $attributes = array(
+        'api-url' => true,
+        'placeholder' => true,
+        'max-results' => true,
+        'theme' => true,
+        'hide-branding' => true,
+        'style' => true,
+    );
+    return array(
+        'search-bar-snippet' => $attributes,
+        'search-modal-snippet' => $attributes,
+        'chat-bubble-snippet' => $attributes,
+    );
+}
+
 function cloudflare_ai_search_render_bar()
 {
     if (!cloudflare_ai_search_ready() || cloudflare_ai_search_quiet_page()) {
@@ -104,7 +123,10 @@ function cloudflare_ai_search_render_bar()
         return;
     }
     echo '<div class="cloudflare-ai-search-bar">';
-    echo cloudflare_ai_search_component('search-bar-snippet', $settings);
+    echo wp_kses(
+        cloudflare_ai_search_component('search-bar-snippet', $settings),
+        cloudflare_ai_search_snippet_allowed_html()
+    );
     echo '</div>';
 }
 add_action('wp_body_open', 'cloudflare_ai_search_render_bar', 5);
@@ -116,10 +138,16 @@ function cloudflare_ai_search_render_footer()
     }
     $settings = cloudflare_ai_search_settings();
     if ($settings['modal']) {
-        echo cloudflare_ai_search_component('search-modal-snippet', $settings);
+        echo wp_kses(
+            cloudflare_ai_search_component('search-modal-snippet', $settings),
+            cloudflare_ai_search_snippet_allowed_html()
+        );
     }
     if ($settings['chat'] && !cloudflare_ai_search_quiet_page()) {
-        echo cloudflare_ai_search_component('chat-bubble-snippet', $settings);
+        echo wp_kses(
+            cloudflare_ai_search_component('chat-bubble-snippet', $settings),
+            cloudflare_ai_search_snippet_allowed_html()
+        );
     }
 }
 add_action('wp_footer', 'cloudflare_ai_search_render_footer', 30);
@@ -133,7 +161,10 @@ function cloudflare_ai_search_shortcode()
     if ($settings['endpoint'] === '' || !$settings['search_bar']) {
         return '';
     }
-    return '<div class="cloudflare-ai-search-bar">' . cloudflare_ai_search_component('search-bar-snippet', $settings) . '</div>';
+    return '<div class="cloudflare-ai-search-bar">' . wp_kses(
+        cloudflare_ai_search_component('search-bar-snippet', $settings),
+        cloudflare_ai_search_snippet_allowed_html()
+    ) . '</div>';
 }
 add_shortcode('cloudflare_ai_search', 'cloudflare_ai_search_shortcode');
 

@@ -3,7 +3,7 @@
  * wp cloudflare-ai-search. Same settings as Settings, then Skyphusion AI.
  */
 
-if (!defined('ABSPATH') && !defined('WP_CLI')) {
+if (!defined('ABSPATH')) {
     exit;
 }
 
@@ -131,10 +131,13 @@ class Cloudflare_AI_Search_CLI
 
         // WP-CLI treats --color as its own global flag and drops --color=<hex>
         // before this command sees it. The raw argv still has the value.
-        if (!array_key_exists('color', $assoc)) {
-            $argv = isset($_SERVER['argv']) && is_array($_SERVER['argv']) ? $_SERVER['argv'] : array();
-            foreach ($argv as $arg) {
-                $arg = (string) $arg;
+        if (!array_key_exists('color', $assoc) && isset($_SERVER['argv']) && is_array($_SERVER['argv'])) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- array_keys only supplies indexes. Each value is unslashed and sanitized below.
+            foreach (array_keys($_SERVER['argv']) as $index) {
+                if (!isset($_SERVER['argv'][$index])) {
+                    continue;
+                }
+                $arg = sanitize_text_field(wp_unslash($_SERVER['argv'][$index]));
                 if (strncmp($arg, '--color=', 8) === 0) {
                     $assoc['color'] = substr($arg, 8);
                     break;
@@ -156,7 +159,7 @@ class Cloudflare_AI_Search_CLI
         if (array_key_exists('endpoint', $assoc)) {
             $typed = trim((string) $assoc['endpoint']);
             if ($typed !== '' && cloudflare_ai_search_normalize_endpoint($typed) === '') {
-                WP_CLI::error('That address has to be an https link ending in search.ai.cloudflare.com.');
+                WP_CLI::error('That address has to be an https link ending in search.ai.cloudflare.com.'); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- names the required host. It does not load a file.
             }
         }
         if (array_key_exists('color', $assoc) && function_exists('sanitize_hex_color')) {

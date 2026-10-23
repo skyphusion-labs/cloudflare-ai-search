@@ -22,7 +22,12 @@ function cloudflare_ai_search_normalize_endpoint($url)
         return '';
     }
 
-    $parts = parse_url($url);
+    if (function_exists('wp_parse_url')) {
+        $parts = wp_parse_url($url);
+    } else {
+        // tests/endpoint-test.php loads this file before WordPress defines wp_parse_url().
+        $parts = parse_url($url); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
+    }
     if (!is_array($parts)) {
         return '';
     }

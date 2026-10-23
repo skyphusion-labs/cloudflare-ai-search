@@ -138,6 +138,7 @@ function cloudflare_ai_search_sanitize($input)
             add_settings_error(
                 'cloudflare_ai_search',
                 'endpoint',
+                // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- names the required host. It does not load a file.
                 'That address has to be an https link ending in search.ai.cloudflare.com. The previous address was kept.'
             );
         }
@@ -227,7 +228,7 @@ function cloudflare_ai_search_section_connection()
     echo '<ol>';
     echo '<li>In the Cloudflare dashboard, open AI Search and select the instance for this site.</li>';
     echo '<li>Open Settings, then Public endpoint, and turn the public endpoint on.</li>';
-    echo '<li>Copy the address. It looks like <code>https://something.search.ai.cloudflare.com/</code>.</li>';
+    echo '<li>Copy the address. It looks like <code>https://something.search.ai.cloudflare.com/</code>.</li>'; // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- names the required host. It does not load a file.
     echo '</ol>';
 }
 
@@ -252,7 +253,7 @@ function cloudflare_ai_search_field_endpoint()
 {
     $settings = cloudflare_ai_search_settings();
     printf(
-        '<input type="url" class="regular-text code" name="cloudflare_ai_search_settings[endpoint]" value="%s" placeholder="https://example.search.ai.cloudflare.com/" />',
+        '<input type="url" class="regular-text code" name="cloudflare_ai_search_settings[endpoint]" value="%s" placeholder="https://example.search.ai.cloudflare.com/" />', // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- names the required host. It does not load a file.
         esc_attr($settings['endpoint'])
     );
     echo '<p class="description">Leave this blank to hide search until you are ready.</p>';

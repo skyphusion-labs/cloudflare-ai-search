@@ -4,7 +4,7 @@ Tags: search, cloudflare, ai, woocommerce
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.2.1
+Stable tag: 0.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,11 @@ The search box lists pages. The chat button answers in a sentence and uses the W
 No. A caller that wants Cloudflare uses `using_provider('cloudflare')`.
 
 == Changelog ==
+
+= 0.2.2 =
+* The text domain is skyphusion-ai, matching the permalink to request. Saved settings stay on the same option.
+* Search snippet markup is escaped before it is printed. Workers AI error text is escaped before it is thrown.
+* A direct request for the WP-CLI file exits.
 
 = 0.2.1 =
 * The plugin name is Skyphusion AI for Cloudflare. The author is Conrad Rockenhaus (skyphusion).

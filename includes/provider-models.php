@@ -55,7 +55,7 @@ class Cloudflare_AI_Provider extends AbstractApiProvider
             'cloudflare',
             'Cloudflare',
             ProviderTypeEnum::cloud(),
-            'https://dash.cloudflare.com/?to=/:account/ai/workers-ai',
+            'https://dash.cloudflare.com/?to=/:account/ai/workers-ai', // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- dashboard link, not a remote asset.
             RequestAuthenticationMethod::apiKey(),
             'Workers AI text, images, and speech. AI Gateway when a gateway id is set. AI Search stays on the public endpoint.',
             null
@@ -230,7 +230,7 @@ function cloudflare_ai_provider_post(AbstractApiBasedModel $model, $url, array $
     $response = $model->getHttpTransporter()->send($request, $model->getRequestOptions());
     $data = $response->getData();
     if (!$response->isSuccessful()) {
-        throw new RuntimeException(cloudflare_ai_provider_error_message($response->getStatusCode(), $data));
+        throw new RuntimeException(esc_html(cloudflare_ai_provider_error_message($response->getStatusCode(), $data)));
     }
     $type = $response->getHeaderAsString('Content-Type');
     return array(

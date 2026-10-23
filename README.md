@@ -63,7 +63,7 @@ The chat button answers in a sentence and uses more of the Cloudflare allowance.
 
 ## Directory
 
-The display name is Skyphusion AI for Cloudflare. Submit it under the permalink `skyphusion-ai`. That permalink is permanent, and it must not begin with `cloudflare`. The GitHub repository name, the text domain, the settings page slug, and the option key stay `cloudflare-ai-search`, so an existing install keeps its settings. `Contributors` in readme.txt stays the wordpress.org username `skyphusion`.
+The display name is Skyphusion AI for Cloudflare. Submit it under the permalink `skyphusion-ai`. That permalink is permanent, and it must not begin with `cloudflare`. The text domain is `skyphusion-ai`, the same as that permalink. The GitHub repository name, the settings page slug, and the option key stay `cloudflare-ai-search`, so an existing install keeps its settings. `Contributors` in readme.txt stays the wordpress.org username `skyphusion`.
 
 ## Develop
 
