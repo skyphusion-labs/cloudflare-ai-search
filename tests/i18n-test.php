@@ -24,8 +24,8 @@ $i18n_root = dirname(__DIR__);
 
 /** Files claimed to be translated, and the minimum each must carry. */
 $i18n_floors = array(
-    'includes/settings.php' => 38,
-    'includes/cli.php' => 5,
+    'includes/settings.php' => 41,
+    'includes/cli.php' => 6,
     'includes/provider.php' => 6,
     'includes/provider-models.php' => 8,
     'includes/provider-speech.php' => 2,

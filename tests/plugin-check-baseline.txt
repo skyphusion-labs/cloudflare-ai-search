@@ -8,7 +8,19 @@
 # tests/plugin-check.sh.
 #
 # =============================================================================
-# OWED: TextDomainMismatch, 66 calls across 7 files. Issue #38 clears it.
+# OWED: TextDomainMismatch, 70 calls across 7 files. Issue #38 clears it.
+#
+# PR #53 (issue #5) adds FOUR calls: three rejection notices in settings.php
+# for colour, theme and placement, and one in cli.php telling the operator
+# that sanitize_hex_color() is unavailable. settings.php 38 to 41, cli.php 5
+# to 6. All four are correct calls on skyphusion-ai like the rest, same root
+# cause, and they clear with #38 together with them.
+#
+# The prose below still says 66 in places. That is the count as MEASURED
+# before these calls existed, and it is left alone rather than rewritten,
+# because a measurement restated to match a later tree stops being a
+# measurement. The heading states the CURRENT set, so it moves.
+#
 # =============================================================================
 # THESE 66 CALLS ARE CORRECT. Do not change them. Every one passes the text
 # domain the plugin header declares, skyphusion-ai, and tests/i18n-test.php
@@ -49,12 +61,12 @@
 # would also fail tests/i18n-test.php, which asserts every call uses the
 # declared domain. The only thing that clears these lines is #38 renaming the
 # directory; delete all seven in that PR, together, not one at a time.
-includes/cli.php	WordPress.WP.I18n.TextDomainMismatch	5
+includes/cli.php	WordPress.WP.I18n.TextDomainMismatch	6
 includes/provider-models.php	WordPress.WP.I18n.TextDomainMismatch	8
 includes/provider-speech.php	WordPress.WP.I18n.TextDomainMismatch	2
 includes/provider.php	WordPress.WP.I18n.TextDomainMismatch	6
 includes/routes.php	WordPress.WP.I18n.TextDomainMismatch	1
-includes/settings.php	WordPress.WP.I18n.TextDomainMismatch	38
+includes/settings.php	WordPress.WP.I18n.TextDomainMismatch	41
 includes/stock.php	WordPress.WP.I18n.TextDomainMismatch	6
 #
 # =============================================================================
