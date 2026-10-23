@@ -3,9 +3,9 @@
 # a listed one does not. Fix one, then DELETE its line (the script says FIXED).
 # Format: file<TAB>code<TAB>count. Never raise a count to make a run pass.
 #
-# Recorded 2026-10-23 against main 1456b29 merged with PR #37 (head a4f439c),
+# Recorded 2026-10-23 against main 0e9a134 merged with PR #37 (head a4f439c),
 # which is the artifact these counts describe. Harness: plugin-check from
-# wordpress.org latest, wp-cli 2.12.0, PHP via tests/plugin-check.sh.
+# wordpress.org latest, wp-cli 2.12.0, run through tests/plugin-check.sh.
 #
 # =============================================================================
 # OWED: TextDomainMismatch, 66 calls across 7 files. Issue #38 clears it.
@@ -42,37 +42,29 @@ includes/settings.php	WordPress.WP.I18n.TextDomainMismatch	38
 includes/stock.php	WordPress.WP.I18n.TextDomainMismatch	6
 #
 # =============================================================================
-# DOCUMENTED NON-FINDING. Baselined on purpose, and it must STAY baselined.
+# CLEARED, recorded so it is not reintroduced.
 # =============================================================================
-# includes/stock.php:209  strip_tags()
-#
-# An earlier revision of this file said this "should become
-# wp_strip_all_tags()". That was wrong, and acting on it breaks the tests.
-# The call is the else branch of a guard:
-#
-#   if (function_exists('wp_strip_all_tags')) { wp_strip_all_tags($text); }
-#   else                                      { strip_tags($text);        }
-#
-# so the suggested replacement would call, in the fallback, the very function
-# the guard has just proven absent. No file under tests/ defines
-# wp_strip_all_tags (checked: grep over tests/ returns no definition), so the
-# else branch is the path tests/stock-test.php actually exercises. This guard
-# is what lets includes/stock.php run without WordPress loaded, which is how
-# its own tests run at all. The sniff cannot see the guard; keep the line.
-includes/stock.php	WordPress.WP.AlternativeFunctions.strip_tags_strip_tags	1
+# WordPress.WP.AlternativeFunctions.strip_tags_strip_tags, formerly owed at
+# includes/stock.php:209, was cleared by #44 and its line is gone. #44 removed
+# the raw strip_tags() fallback from the shipped code entirely and had
+# tests/stock-test.php define wp_strip_all_tags() instead, so the no-WordPress
+# harness still runs. Do not restore a function_exists() guard with a
+# strip_tags() fallback to "be safe": that reintroduces the error, and the
+# reader half only runs from a hook, where WordPress is loaded and
+# wp_strip_all_tags() has existed since WordPress 2.9.
 #
 # =============================================================================
 # WARNINGS. These never gate, so they carry no line. Recorded so that nobody
 # "fixes" a deliberate choice into a defect.
 # =============================================================================
-# includes/frontend.php:47  EnqueuedResourceParameters.MissingVersion
+# includes/frontend.php  EnqueuedResourceParameters.MissingVersion
 # wp_enqueue_script() passes null for $ver deliberately. $src comes from
 # cloudflare_ai_search_snippet_src(), which returns
 #   <endpoint>/assets/v<CLOUDFLARE_AI_SEARCH_SNIPPET>/search-snippet.es.js
 # so the version is already IN the path. null is WordPress's documented way to
 # say "add no ?ver= query string", which is what we want for a file served
 # from the customer's AI Search endpoint rather than from the plugin.
-# The wp_enqueue_style() call at includes/frontend.php:30 DOES pass
+# The wp_enqueue_style() call just above it DOES pass
 # CLOUDFLARE_AI_SEARCH_VERSION, because assets/search.css is ours and is
 # served through plugins_url(). The two calls differ on purpose; do not
 # "align" them.
@@ -83,6 +75,7 @@ includes/stock.php	WordPress.WP.AlternativeFunctions.strip_tags_strip_tags	1
 # #38 is a wordpress.org submission prerequisite, not only a tidiness fix.
 #
 # CLAUDE.md  unexpected_markdown_file
-# CLAUDE.md is in the shipped archive. It is our internal instructions file and
-# no installing site needs it. Not gated, and not fixed here: it is a
-# .gitattributes/.distignore change that alters what every release contains.
+# CLAUDE.md entered the tree in #40 and is in neither .distignore nor
+# .gitattributes, so the next release would ship it. Tracked as #47, in the
+# packaging lane, because it changes what every release contains. v0.3.3
+# predates the file and is clean.
