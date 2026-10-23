@@ -36,7 +36,7 @@ Cloudflare, the Cloudflare logo, and Cloudflare Workers are trademarks and/or re
 
 == External services ==
 
-AI Search. Your browser loads the search snippet from the public endpoint address you paste. The connection check posts to /search. The search helper posts to /chat/completions. The optional search-results answer posts there as well. None of these requests send an API token.
+AI Search. The plugin loads a JavaScript file from your own AI Search instance. Your browser runs that file. The file is search-snippet.es.js, pinned to snippet build 0.0.25. The plugin builds the address from the public endpoint you paste. It accepts only an https address on search.ai.cloudflare.com. It rejects any path, query, fragment or user information in that address. It checks the address again every time it reads the setting. The plugin loads no script until you paste an endpoint. It also loads none until you turn on the search box, keyboard search or chat. The connection check posts to /search. The search helper posts to /chat/completions. The optional search-results answer posts there as well. None of these requests send an API token.
 
 Workers AI and AI Gateway. The plugin sends prompts, images, speech text, and embedding texts to api.cloudflare.com. It sends them to gateway.ai.cloudflare.com instead when you set a gateway id. Each request carries the Connectors API token as a bearer token. The account id and the gateway id are not secrets.
 
