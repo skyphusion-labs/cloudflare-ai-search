@@ -236,8 +236,8 @@ function cloudflare_ai_search_section_workers()
 {
     $connectors = admin_url('options-connectors.php');
     echo '<p>' . sprintf(
-        /* translators: %s is the URL of the WordPress Connectors settings screen. */
         wp_kses(
+            /* translators: %s is the URL of the WordPress Connectors settings screen. */
             __('WordPress and WooCommerce call Workers AI through the AI Client. The provider id is <code>cloudflare</code>. The plugin reads the API token from the <code>CLOUDFLARE_API_KEY</code> environment variable first. It then tries a PHP constant of the same name. It falls back to the token saved in <a href="%s">Settings, then Connectors</a>. A token in the environment or in a constant overrides the saved one. This screen does not store the token.', 'skyphusion-ai'),
             array('code' => array(), 'a' => array('href' => array()))
         ),
@@ -428,8 +428,8 @@ function cloudflare_ai_search_admin_notice()
     }
     $url = admin_url('options-general.php?page=cloudflare-ai-search');
     echo '<div class="notice notice-warning"><p>' . sprintf(
-        /* translators: %s is the URL of this plugin's settings screen. */
         wp_kses(
+            /* translators: %s is the URL of this plugin's settings screen. */
             __('Skyphusion AI is not connected yet. <a href="%s">Add the AI Search address</a>.', 'skyphusion-ai'),
             array('a' => array('href' => array()))
         ),

@@ -252,3 +252,95 @@ expect(
 // directory is absent today.
 expect('the languages directory is absent right now', $i18n_has_languages, false);
 expect('and Domain Path is correspondingly absent', $i18n_has_domain_path, false);
+
+// ------------------------------------- translator comments reach their call
+
+/**
+ * Every `translators:` comment whose call is not on the NEXT LINE.
+ *
+ * gettext attaches a translator comment to the call on the line immediately
+ * following it. LINE adjacency, not token adjacency: `return sprintf(__(...))`
+ * on the next line is attached perfectly well, and an earlier version of this
+ * check demanded the very next TOKEN be the call and flagged four correct
+ * sites in this repo. The rule below is the one gettext actually applies.
+ *
+ * It is worth checking because the failure is silent. Both of this plugin's
+ * settings comments were written two lines above their call, with `wp_kses(`
+ * in between. They existed, they described the placeholder correctly, and
+ * `wp plugin check` reported MissingTranslatorsComment on both: the comments
+ * never reached the .pot file at all. The work was done and the placement
+ * discarded it.
+ */
+function i18n_orphan_translator_comments($src)
+{
+    $fns = array('__', '_e', '_x', '_n', '_nx', 'esc_html__', 'esc_attr__', 'esc_html_e', 'esc_attr_e');
+    $tokens = @token_get_all($src);
+    $call_lines = array();
+    $comment_lines = array();
+    $count = count($tokens);
+    for ($i = 0; $i < $count; $i++) {
+        $t = $tokens[$i];
+        if (!is_array($t)) {
+            continue;
+        }
+        if ($t[0] === T_STRING && in_array($t[1], $fns, true)) {
+            $j = $i + 1;
+            while ($j < $count && is_array($tokens[$j]) && $tokens[$j][0] === T_WHITESPACE) {
+                $j++;
+            }
+            if ($j < $count && $tokens[$j] === '(') {
+                $call_lines[$t[2]] = true;
+            }
+            continue;
+        }
+        if (in_array($t[0], array(T_COMMENT, T_DOC_COMMENT), true)
+            && stripos($t[1], 'translators:') !== false) {
+            // A block comment can span lines; the relevant one is its LAST.
+            $comment_lines[] = $t[2] + substr_count($t[1], "\n");
+        }
+    }
+    $orphans = array();
+    foreach ($comment_lines as $line) {
+        if (!isset($call_lines[$line + 1])) {
+            $orphans[] = 'line ' . $line . ' has no translation call on the next line';
+        }
+    }
+    return $orphans;
+}
+
+$i18n_orphans = array();
+foreach ($i18n_files as $rel => $src) {
+    foreach (i18n_orphan_translator_comments($src) as $o) {
+        $i18n_orphans[] = $rel . ': ' . $o;
+    }
+}
+expect('every translators: comment is on the line above its call', $i18n_orphans, array());
+
+// CONTROLS, both directions. An empty result is also what a file with no
+// translator comments produces, so the negative case has to be shown too.
+expect(
+    'a comment two lines above its call is caught',
+    count(i18n_orphan_translator_comments(
+        "<?php\nsprintf(\n/* translators: %s is a url. */\nwp_kses(\n__('a %s b', 'skyphusion-ai'), array()),\n\$u);\n"
+    )),
+    1
+);
+expect(
+    'a comment directly above its call is not',
+    count(i18n_orphan_translator_comments(
+        "<?php\nsprintf(\nwp_kses(\n/* translators: %s is a url. */\n__('a %s b', 'skyphusion-ai'), array()),\n\$u);\n"
+    )),
+    0
+);
+expect(
+    'a call reached through return on the next line is not',
+    count(i18n_orphan_translator_comments(
+        "<?php\n/* translators: %d is a status. */\nreturn sprintf(__('HTTP %d.', 'skyphusion-ai'), 1);\n"
+    )),
+    0
+);
+expect(
+    'this plugin actually has translator comments to check',
+    count(preg_grep('/translators:/', explode("\n", $i18n_files['includes/settings.php']))) >= 2,
+    true
+);
