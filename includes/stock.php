@@ -333,6 +333,10 @@ function cloudflare_ai_search_stock_row_from_product($product, $include_attribut
  * rather than a second pass over objects already in the cache. The cap bounds
  * that; a store that needs every row indexed raises it with the filter.
  *
+ * It bounds the children of a grouped product as well. The cost is the same
+ * one product load per row, so one knob covers both rather than two filters
+ * for the same thing.
+ *
  * @return int
  */
 function cloudflare_ai_search_stock_max_variations()
@@ -388,7 +392,54 @@ function cloudflare_ai_search_stock_variation_rows($product)
 }
 
 /**
+ * Rows for the children of a grouped product.
+ *
+ * A grouped product sells other products rather than variations of itself,
+ * so get_children() returns whole products here. They carry no attribute
+ * summary, and their name is what a shopper and an index identify them by,
+ * so the name takes the leading field that a variation fills with attributes.
+ *
+ * @param object $product
+ * @return array
+ */
+function cloudflare_ai_search_stock_grouped_rows($product)
+{
+    if (!is_object($product) || !method_exists($product, 'get_children') || !function_exists('wc_get_product')) {
+        return array();
+    }
+    $children = $product->get_children();
+    if (!is_array($children)) {
+        return array();
+    }
+
+    $max = cloudflare_ai_search_stock_max_variations();
+    $rows = array();
+    foreach ($children as $child_id) {
+        if (count($rows) >= $max) {
+            break;
+        }
+        $child = wc_get_product($child_id);
+        if (!is_object($child)) {
+            continue;
+        }
+        $row = cloudflare_ai_search_stock_row_from_product($child, false);
+        if (method_exists($child, 'get_name')) {
+            $row['attributes'] = cloudflare_ai_search_stock_plain($child->get_name());
+        }
+        $rows[] = $row;
+    }
+    return $rows;
+}
+
+/**
  * Rows for the current single product. Empty off the product page, and when WooCommerce is absent.
+ *
+ * A variable product yields one row per variation and a grouped product one
+ * row per child. Every other type yields a row for itself, including external
+ * and any type a third party registers. That default is deliberate: an
+ * allowlist of types is what made a grouped product render nothing at all,
+ * and a product that reports a stock status has something worth indexing
+ * whatever its type is called.
  *
  * @return array
  */
@@ -417,10 +468,10 @@ function cloudflare_ai_search_stock_rows()
     if ($product->is_type('variable')) {
         return cloudflare_ai_search_stock_variation_rows($product);
     }
-    if ($product->is_type('simple')) {
-        return array(cloudflare_ai_search_stock_row_from_product($product, false));
+    if ($product->is_type('grouped')) {
+        return cloudflare_ai_search_stock_grouped_rows($product);
     }
-    return array();
+    return array(cloudflare_ai_search_stock_row_from_product($product, false));
 }
 
 /**
