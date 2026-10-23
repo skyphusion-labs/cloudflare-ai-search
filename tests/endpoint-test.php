@@ -104,6 +104,39 @@ require __DIR__ . '/stock-test.php';
 require __DIR__ . '/i18n-test.php';
 require __DIR__ . '/lead-guard-test.php';
 
+/**
+ * EVERY test file in this directory is actually required by this runner.
+ *
+ * A dropped `require` line removes a whole file's checks and the run still
+ * exits 0, reporting "all passed" over a smaller set. Nothing else here can
+ * see that: the remaining assertions are all still true.
+ *
+ * Measured rather than imagined. Deleting the `cli-accent-color-test.php`
+ * line during a merge resolution gave exit 0 with 203 checks instead of 228.
+ * A hand-resolved merge is exactly where that happens, because two adjacent
+ * `require` lines look like two versions of one line.
+ *
+ * This is a denominator check: it fails when the set it runs over shrinks,
+ * which is the one thing a passing suite cannot tell you.
+ */
+$runner_source = (string) file_get_contents(__FILE__);
+$runner_missing = array();
+foreach ((array) glob(__DIR__ . '/*-test.php') as $runner_path) {
+    $runner_name = basename((string) $runner_path);
+    if ($runner_name === basename(__FILE__)) {
+        continue;
+    }
+    if (strpos($runner_source, "/" . $runner_name . "'") === false) {
+        $runner_missing[] = $runner_name;
+    }
+}
+expect('every test file in tests/ is required by this runner', $runner_missing, array());
+expect(
+    'and there are several of them, so that check is not vacuous',
+    count((array) glob(__DIR__ . '/*-test.php')) >= 6,
+    true
+);
+
 if ($failures > 0) {
     fwrite(STDERR, "{$failures} failed\n");
     exit(1);
