@@ -20,6 +20,8 @@ The screen links to Workers AI, AI Gateway, and AI Search.
 
 An optional switch prints an AI Search answer above WordPress and WooCommerce search results. It is off until you turn it on. Errors stay off the page.
 
+A single product page prints each variation's attributes, SKU, price, and stock, and a simple product's stock, as text in the page, so a crawler that does not run JavaScript can index it.
+
 Shortcode: `[cloudflare_ai_search]`
 
 Example:

@@ -23,6 +23,7 @@ define('CLOUDFLARE_AI_SEARCH_FILE', __FILE__);
 require_once __DIR__ . '/includes/endpoint.php';
 require_once __DIR__ . '/includes/routes.php';
 require_once __DIR__ . '/includes/settings.php';
+require_once __DIR__ . '/includes/stock.php';
 require_once __DIR__ . '/includes/frontend.php';
 require_once __DIR__ . '/includes/cli.php';
 require_once __DIR__ . '/includes/provider.php';
