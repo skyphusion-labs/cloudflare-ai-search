@@ -254,3 +254,45 @@ function cloudflare_ai_search_lead_block($html, $block)
     return $lead . $html;
 }
 add_filter('render_block', 'cloudflare_ai_search_lead_block', 10, 2);
+
+/**
+ * Print stock text once, inside main, on the single product page.
+ *
+ * The blockified single product template places woocommerce/add-to-cart-form
+ * inside main (WooCommerce templates/templates/blockified/single-product.html).
+ * woocommerce/add-to-cart-with-options is that same form slot on templates
+ * that use the newer block. The legacy template renders inside main and
+ * fires woocommerce_single_product_summary. The static flag in
+ * cloudflare_ai_search_stock_markup() stops a second print.
+ *
+ * @param string $html
+ * @param array  $block
+ * @return string
+ */
+function cloudflare_ai_search_stock_block($html, $block)
+{
+    $name = isset($block['blockName']) ? (string) $block['blockName'] : '';
+    if ($name !== 'woocommerce/add-to-cart-form' && $name !== 'woocommerce/add-to-cart-with-options') {
+        return $html;
+    }
+    $stock = cloudflare_ai_search_stock_markup();
+    if ($stock === '') {
+        return $html;
+    }
+    return $html . wp_kses($stock, cloudflare_ai_search_stock_allowed_html());
+}
+add_filter('render_block', 'cloudflare_ai_search_stock_block', 10, 2);
+
+/**
+ * Classic themes do not render the add to cart block. The summary hook
+ * still runs inside main.
+ */
+function cloudflare_ai_search_print_stock()
+{
+    $html = cloudflare_ai_search_stock_markup();
+    if ($html === '') {
+        return;
+    }
+    echo wp_kses($html, cloudflare_ai_search_stock_allowed_html());
+}
+add_action('woocommerce_single_product_summary', 'cloudflare_ai_search_print_stock', 35);

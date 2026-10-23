@@ -40,6 +40,8 @@ $answer = cloudflare_ai_search_query( 'shipping times' );
 
 WooCommerce code that calls `wp_ai_client_prompt()` can use the same provider. The shop already shows the search box when the public endpoint is set.
 
+A single product page prints each variation's attributes, SKU, price, and stock, and a simple product's stock, as text in the page, so a crawler that does not run JavaScript can index it.
+
 The default text model is `@cf/meta/llama-3.3-70b-instruct-fp8-fast`. A prompt that includes an image uses `@cf/mistralai/mistral-small-3.1-24b-instruct` first. `@cf/meta/llama-3.2-11b-vision-instruct` needs a one-time `{"prompt":"agree"}` request on that model before it will answer, and it does not take tools or JSON. The default image model is `@cf/black-forest-labs/flux-1-schnell` and it takes a JSON prompt. FLUX.2 dev and FLUX.2 klein 4B are also listed; their docs say multipart, and this plugin still sends a JSON prompt, so only those two fail if Cloudflare rejects it. Speech is `@cf/deepgram/aura-1` (MP3). Voices: angus, asteria, arcas, orion, orpheus, athena, luna, zeus, perseus, helios, hera, stella.
 
 ## Command line
