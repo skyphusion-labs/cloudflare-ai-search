@@ -3,12 +3,13 @@
 # a listed one does not. Fix one, then DELETE its line (the script says FIXED).
 # Format: file<TAB>code<TAB>count. Never raise a count to make a run pass.
 #
-# Recorded 2026-10-23 against main 0e9a134 merged with PR #37 (head a4f439c),
-# which is the artifact these counts describe. Harness: plugin-check from
+# Recorded 2026-10-23 against main 0e9a134 merged with PR #37 (head a4f439c).
+# Re-recorded the same day against main 0b9cebb merged with PR #48, which is
+# the artifact these counts now describe. Harness: plugin-check from
 # wordpress.org latest, wp-cli 2.12.0, run through tests/plugin-check.sh.
 #
 # =============================================================================
-# OWED: TextDomainMismatch, 66 calls across 7 files. Issue #38 clears it.
+# OWED: TextDomainMismatch, 67 calls across 7 files. Issue #38 clears it.
 # =============================================================================
 # THESE CALLS ARE CORRECT. Every one passes the text domain the plugin header
 # declares, skyphusion-ai, and tests/i18n-test.php asserts precisely that on
@@ -20,10 +21,10 @@
 #   textdomain_mismatch: The "Text Domain" header in the plugin file does not
 #   match the slug. Found "skyphusion-ai", expected "cloudflare-ai-search".
 #
-# So all 66 are one root cause, the deferred slug rename, which is issue #38.
+# So all 67 are one root cause, the deferred slug rename, which is issue #38.
 #
 # DO NOT "fix" these by changing the domain to cloudflare-ai-search. That would
-# point 66 correct calls at a domain the header does not declare, fail
+# point 67 correct calls at a domain the header does not declare, fail
 # tests/i18n-test.php ("every translation call uses the declared domain"), and
 # have to be reverted by #38. The only thing that clears these lines is #38
 # renaming the slug to skyphusion-ai; delete them in that PR, not before.
@@ -33,7 +34,14 @@
 # merges, a run against main alone reports those six as FIXED and advises
 # trimming them. That advice is wrong in this window. Do not trim them, or #37
 # fails the gate again. Only includes/stock.php already carries its 6 on main.
-includes/cli.php	WordPress.WP.I18n.TextDomainMismatch	5
+#
+# includes/cli.php moved 5 to 6 in PR #48 (issue #6). The sixth call is the
+# deprecation notice warning that --color is now an alias for --accent-color.
+# It is a correct call on skyphusion-ai like the other 65, so it belongs to the
+# same root cause and clears with #38. The count is raised here because the
+# change that ADDED the call carries the move, which is what keeps this file an
+# accurate description of one artifact rather than an approximation of several.
+includes/cli.php	WordPress.WP.I18n.TextDomainMismatch	6
 includes/provider-models.php	WordPress.WP.I18n.TextDomainMismatch	8
 includes/provider-speech.php	WordPress.WP.I18n.TextDomainMismatch	2
 includes/provider.php	WordPress.WP.I18n.TextDomainMismatch	6
