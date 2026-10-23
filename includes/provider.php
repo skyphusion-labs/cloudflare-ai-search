@@ -51,7 +51,7 @@ function cloudflare_ai_provider_register()
 function cloudflare_ai_provider_embeddings($texts)
 {
     if (!is_array($texts)) {
-        return new WP_Error('cloudflare_ai_embeddings', 'Embeddings need a list of texts.');
+        return new WP_Error('cloudflare_ai_embeddings', __('Embeddings need a list of texts.', 'skyphusion-ai'));
     }
     $settings = cloudflare_ai_search_settings();
     $key = cloudflare_ai_provider_connector_key();
@@ -63,7 +63,7 @@ function cloudflare_ai_provider_embeddings($texts)
     );
     $body = cloudflare_ai_provider_embeddings_body($texts);
     if ($url === '' || $credentials['token'] === '' || !$body['text']) {
-        return new WP_Error('cloudflare_ai_embeddings', 'Add the Cloudflare account ID and API token before embedding text.');
+        return new WP_Error('cloudflare_ai_embeddings', __('Add the Cloudflare account ID and API token before embedding text.', 'skyphusion-ai'));
     }
 
     $response = wp_remote_post($url, array(
@@ -75,7 +75,7 @@ function cloudflare_ai_provider_embeddings($texts)
         'body' => wp_json_encode($body),
     ));
     if (is_wp_error($response)) {
-        return new WP_Error('cloudflare_ai_embeddings', 'The site could not reach Cloudflare.');
+        return new WP_Error('cloudflare_ai_embeddings', __('The site could not reach Cloudflare.', 'skyphusion-ai'));
     }
     $status = (int) wp_remote_retrieve_response_code($response);
     $decoded = json_decode((string) wp_remote_retrieve_body($response), true);
@@ -97,7 +97,7 @@ function cloudflare_ai_search_query($question)
     $question = trim((string) $question);
     $endpoint = cloudflare_ai_search_settings()['endpoint'];
     if ($question === '' || $endpoint === '') {
-        return new WP_Error('cloudflare_ai_search', 'Add the AI Search address before searching.');
+        return new WP_Error('cloudflare_ai_search', __('Add the AI Search address before searching.', 'skyphusion-ai'));
     }
     $response = wp_remote_post($endpoint . '/chat/completions', array(
         'timeout' => 20,
@@ -112,12 +112,13 @@ function cloudflare_ai_search_query($question)
         )),
     ));
     if (is_wp_error($response)) {
-        return new WP_Error('cloudflare_ai_search', 'The site could not reach Cloudflare.');
+        return new WP_Error('cloudflare_ai_search', __('The site could not reach Cloudflare.', 'skyphusion-ai'));
     }
     $status = (int) wp_remote_retrieve_response_code($response);
     $decoded = json_decode((string) wp_remote_retrieve_body($response), true);
     if ($status !== 200) {
-        return new WP_Error('cloudflare_ai_search', 'Cloudflare answered HTTP ' . $status . '.');
+        /* translators: %d is an HTTP status code returned by Cloudflare. */
+        return new WP_Error('cloudflare_ai_search', sprintf(__('Cloudflare answered HTTP %d.', 'skyphusion-ai'), (int) $status));
     }
     return cloudflare_ai_search_read_answer($decoded);
 }

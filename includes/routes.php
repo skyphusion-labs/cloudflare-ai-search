@@ -495,7 +495,8 @@ function cloudflare_ai_provider_error_message($status, $decoded)
         $message = substr($message, 0, 300);
     }
     if ($message === '') {
-        return 'Cloudflare returned HTTP ' . (int) $status . '.';
+        /* translators: %d is an HTTP status code returned by Cloudflare. */
+        return sprintf(__('Cloudflare returned HTTP %d.', 'skyphusion-ai'), (int) $status);
     }
     return $message;
 }

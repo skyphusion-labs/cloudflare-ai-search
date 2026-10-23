@@ -159,30 +159,30 @@ class Cloudflare_AI_Search_CLI
         if (array_key_exists('endpoint', $assoc)) {
             $typed = trim((string) $assoc['endpoint']);
             if ($typed !== '' && cloudflare_ai_search_normalize_endpoint($typed) === '') {
-                WP_CLI::error('That address has to be an https link ending in search.ai.cloudflare.com.'); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- names the required host. It does not load a file.
+                WP_CLI::error(__('That address has to be an https link ending in search.ai.cloudflare.com.', 'skyphusion-ai')); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- names the required host. It does not load a file.
             }
         }
         if (array_key_exists('color', $assoc) && function_exists('sanitize_hex_color')) {
             if (!sanitize_hex_color((string) $assoc['color'])) {
-                WP_CLI::error('Color has to be a hex color such as #1B3A32.');
+                WP_CLI::error(__('Color has to be a hex color such as #1B3A32.', 'skyphusion-ai'));
             }
         }
         if (array_key_exists('account-id', $assoc)) {
             $typed = trim((string) $assoc['account-id']);
             if ($typed !== '' && cloudflare_ai_provider_account_id($typed) === '') {
-                WP_CLI::error('Account ID has to be 32 hex characters.');
+                WP_CLI::error(__('Account ID has to be 32 hex characters.', 'skyphusion-ai'));
             }
         }
         if (array_key_exists('gateway-id', $assoc)) {
             $typed = trim((string) $assoc['gateway-id']);
             if ($typed !== '' && cloudflare_ai_provider_gateway_id($typed) === '') {
-                WP_CLI::error('Gateway ID has to be a slug of letters, numbers, hyphens, or underscores.');
+                WP_CLI::error(__('Gateway ID has to be a slug of letters, numbers, hyphens, or underscores.', 'skyphusion-ai'));
             }
         }
 
         $clean = cloudflare_ai_search_sanitize($input);
         update_option('cloudflare_ai_search_settings', $clean);
-        WP_CLI::success('Saved. Settings, then Skyphusion AI, shows the same values.');
+        WP_CLI::success(__('Saved. Settings, then Skyphusion AI, shows the same values.', 'skyphusion-ai'));
     }
 }
 

@@ -26,7 +26,7 @@ class Cloudflare_AI_Speech_Model extends AbstractApiBasedModel implements Speech
     {
         $text = cloudflare_ai_provider_prompt_text($prompt);
         if ($text === '') {
-            throw new InvalidArgumentException('Speech generation needs text.');
+            throw new InvalidArgumentException(__('Speech generation needs text.', 'skyphusion-ai'));
         }
         $voice = $this->getConfig()->getOutputSpeechVoice();
         $account = cloudflare_ai_provider_request_account($this);
@@ -43,7 +43,7 @@ class Cloudflare_AI_Speech_Model extends AbstractApiBasedModel implements Speech
 
         $audio = cloudflare_ai_provider_audio_data_uri($posted['content_type'], $posted['body'], $posted['data']);
         if ($audio === '') {
-            throw new RuntimeException('Cloudflare returned no audio.');
+            throw new RuntimeException(__('Cloudflare returned no audio.', 'skyphusion-ai'));
         }
 
         return new GenerativeAiResult(
