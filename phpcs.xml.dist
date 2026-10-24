@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<ruleset name="skyphusion-ai">
+  <description>WordPress Coding Standards for the shipped plugin PHP. tests/phpcs.sh passes the file list from git ls-files. This file names no files, because a pattern here can miss one and the run still goes green.</description>
+  <rule ref="WordPress"/>
+  <config name="text_domain" value="skyphusion-ai"/>
+  <config name="minimum_supported_wp_version" value="6.4"/>
+  <arg name="extensions" value="php"/>
+</ruleset>

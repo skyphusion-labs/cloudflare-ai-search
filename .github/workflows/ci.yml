@@ -21,6 +21,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: plugin checks
         run: php tests/endpoint-test.php
+      # Shipped PHP only, against tests/phpcs-baseline.txt. A higher count or a
+      # new file+sniff pair fails. The baseline is large because the tree does
+      # not follow the standard's whitespace rules; that file says what it costs.
+      - name: WordPress coding standards
+        run: bash tests/phpcs.sh
 
   # NOT a second copy of `ci`. It used to run exactly `php tests/endpoint-test.php`,
   # the same command as the job above, which can only fail when `ci` has already
@@ -32,6 +37,10 @@ jobs:
   # never reports and every pull request blocks permanently rather than failing.
   # Dropping the required context is a protection-rules change and not this
   # file's to make, so the job stays and earns its place.
+  #
+  # What it earns is `php -l`, not a coverage percentage. A percentage was not
+  # added: the risk this issue names is a parse error, and a percentage does
+  # not catch one in a file the suite never loads.
   coverage:
     name: coverage
     runs-on: ubuntu-latest
@@ -50,7 +59,7 @@ jobs:
       # `printf '' | xargs -0 --no-run-if-empty -n1 php -l` exits 0, so an
       # empty list reported SUCCESS. That flag only stops php being invoked
       # with no argument; it says nothing about the exit status. 15 is well
-      # under the 19 tracked today, so the floor catches a broken listing
+      # under the 20 tracked PHP files, so the floor catches a broken listing
       # without tripping on an ordinary deletion.
       #
       # `xargs -0 -n1` so one bad file fails the step rather than being
