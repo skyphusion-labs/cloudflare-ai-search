@@ -20,7 +20,7 @@
 # correct prose, and a guard that rejects it is a guard someone disables.
 #
 # =============================================================================
-# OWED: TextDomainMismatch, 71 calls across 7 files. Issue #38 clears it.
+# OWED: TextDomainMismatch, 77 calls across 7 files. Issue #38 clears it.
 #
 # THE TOTAL IS MEASURED ON THE MERGED ARTIFACT, and it is neither side's
 # number. PR #53's heading said 70: it accounted for includes/cli.php moving
@@ -113,12 +113,17 @@
 # measurement into an assertion. The difference is stated in words rather than
 # as a second number, because PR #55 lands an assertion that the owed total
 # appears on the heading and nowhere else.
+#
+# The settings screen now says which source is supplying the API token
+# (issue #34). That adds six calls in includes/settings.php, 41 to 47. They
+# are correct calls on skyphusion-ai, the same root cause as the rest, and
+# they clear with #38. The heading is the only place the total is stated.
 includes/cli.php	WordPress.WP.I18n.TextDomainMismatch	7
 includes/provider-models.php	WordPress.WP.I18n.TextDomainMismatch	8
 includes/provider-speech.php	WordPress.WP.I18n.TextDomainMismatch	2
 includes/provider.php	WordPress.WP.I18n.TextDomainMismatch	6
 includes/routes.php	WordPress.WP.I18n.TextDomainMismatch	1
-includes/settings.php	WordPress.WP.I18n.TextDomainMismatch	41
+includes/settings.php	WordPress.WP.I18n.TextDomainMismatch	47
 includes/stock.php	WordPress.WP.I18n.TextDomainMismatch	6
 #
 # =============================================================================

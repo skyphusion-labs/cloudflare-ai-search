@@ -24,7 +24,13 @@ $i18n_root = dirname(__DIR__);
 
 /** Files claimed to be translated, and the minimum each must carry. */
 $i18n_floors = array(
-    'includes/settings.php' => 41,
+    // 47 and not 41 once the settings screen names the token source.
+    // Measured with this file's own i18n_calls() after that change. Six
+    // sentences: the environment, the environment while a saved token is
+    // unused, the constant, the constant while a saved token is unused, the
+    // Connectors option, and no token. A floor is a minimum, so 41 would
+    // still have PASSED while no longer covering those sentences.
+    'includes/settings.php' => 47,
     // 7 and not 6 since the #53/#48 merge, measured with this file's own
     // i18n_calls(). Resolving the accent-color validation fail-closed added
     // one call, the "Cannot validate the accent color" error. A floor is a

@@ -56,7 +56,7 @@ Open the Cloudflare dashboard. Go to AI Search, then your instance, then Setting
 
 = Where does the API token go? =
 
-Save it in Settings, then Connectors. The plugin reads the `CLOUDFLARE_API_KEY` environment variable or constant first. You can put the account id in front of the token as `account-id:api-token`. This plugin's own option never stores the token.
+Save it in Settings, then Connectors. The plugin reads the `CLOUDFLARE_API_KEY` environment variable or constant first. You can put the account id in front of the token as `account-id:api-token`. This plugin's own option never stores the token. The Skyphusion AI screen says which source is in use. It says when the saved token is not being used. It does not show the token.
 
 = Does the chat button cost extra? =
 
