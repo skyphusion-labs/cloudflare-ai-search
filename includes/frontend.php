@@ -315,3 +315,5 @@ function cloudflare_ai_search_print_stock()
     echo wp_kses($html, cloudflare_ai_search_stock_allowed_html());
 }
 add_action('woocommerce_single_product_summary', 'cloudflare_ai_search_print_stock', 35);
+
+function skyphusion_ai_lint_probe( {
