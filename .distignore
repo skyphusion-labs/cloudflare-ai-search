@@ -13,3 +13,7 @@
 /.github
 /CLAUDE.md
 /tests
+/composer.json
+/composer.lock
+/phpcs.xml.dist
+/vendor

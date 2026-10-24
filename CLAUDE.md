@@ -8,6 +8,13 @@ not change the shipped prefix as a side effect of other work.
 ## Gates
 
 - `php tests/endpoint-test.php` is the unit gate (CI job `ci`).
+- `bash tests/phpcs.sh` is the WordPress Coding Standards gate, also in CI job `ci`.
+  It checks the shipped PHP only. Findings already listed in
+  `tests/phpcs-baseline.txt` are owed. A new pair, or a higher count, fails.
+  Never raise a count to get green.
+- CI job `coverage` is `php -l` over every tracked PHP file (`git ls-files '*.php'`).
+  It is a syntax gate. The job is named `coverage` because that is the required
+  status check. Do not rename the job without a branch-protection change.
 - `tests/plugin-check.sh` is the WordPress Plugin Check gate. **Run it on every change
   to the plugin, before opening the PR.** Conrad's standard (2026-10-23).
 

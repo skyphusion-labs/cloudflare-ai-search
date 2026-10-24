@@ -121,9 +121,21 @@ It exits 0 when no error is new, 1 when a new error appears, and 2 when it could
 
 `tests/plugin-check-baseline.txt` lists the errors the plugin still owes. A listed error does not fail the run. Any other error does. Fix an error, then delete its line.
 
+### Syntax
+
+CI runs `php -l` on every PHP file that git tracks. A file that does not parse fails that job. The job is named `coverage` because branch protection requires a check by that name.
+
+### Coding standards
+
+Run `bash tests/phpcs.sh` before you open a pull request. It runs the WordPress coding standard on the plugin PHP. It does not check the test files.
+
+It exits 0 when no finding is new, 1 when a finding is new or a count went up, and 2 when it could not measure. Exit 2 is never a pass.
+
+`tests/phpcs-baseline.txt` lists the findings the plugin still owes. A listed count does not fail the run. A higher count does. Fix a finding, then lower its count in that file. Do not raise a count to make the run pass.
+
 ## Distribution
 
-A distributed build carries the runtime only. That is `cloudflare-ai-search.php`, `includes/`, `assets/`, `readme.txt`, `README.md`, `LICENSE` and `uninstall.php`. The test files, the workflow and the dotfiles stay out of it.
+A distributed build carries the runtime only. That is `cloudflare-ai-search.php`, `includes/`, `assets/`, `readme.txt`, `README.md`, `LICENSE` and `uninstall.php`. The test files, the workflow and the dotfiles stay out of it. The coding-standard config stays out of it too. That is `composer.json`, `composer.lock` and `phpcs.xml.dist`.
 
 `tests/endpoint-test.php` and `tests/account-order.php` define `ABSPATH` themselves, so the harness can load `includes/` directly. That is the opposite of what a shipped file should do. `tests/provider-test.php` also calls `shell_exec()`. None of that belongs in an archive a site owner installs.
 
