@@ -16,7 +16,9 @@
 # failure). Exit 2 is never a pass.
 #
 # Env:
-#   PLUGIN_CHECK_HOME  harness dir (default ~/.cache/skyphusion-ai-plugin-check)
+#   PLUGIN_CHECK_HOME  harness dir (default ~/.cache/skyphusion-ai-plugin-check).
+#                      One lock on this directory covers the whole run. A second
+#                      run waits and says so. See acquire_harness_lock.
 #   PLUGIN_CHECK_PREFIX  directory name inside the archive (default
 #                      cloudflare-ai-search, what the release zip uses today)
 #   PLUGIN_CHECK_REF   git ref to archive (default HEAD)
@@ -38,9 +40,123 @@ WPDIR="$HOME_DIR/wordpress"
 
 cannot() { echo "plugin-check: COULD NOT MEASURE: $*" >&2; exit 2; }
 
+# Cleaned on every exit, including the exit 2 from cannot(). Empty means
+# "nothing to remove". Set -u is on, so each one exists from here down.
+STALE=""
+LOCKDIR=""
+ARCHIVE=""
+OUT=""
+ALL=""
+FOUND=""
+
+cleanup() {
+    if [ -n "$ARCHIVE" ]; then
+        rm -f "$ARCHIVE"
+    fi
+    if [ -n "$OUT" ]; then
+        rm -f "$OUT" "$ALL" "$FOUND"
+    fi
+    if [ -n "$STALE" ]; then
+        rm -rf "$STALE"
+    fi
+    # Remove the lock only when this process wrote the pid. A waiter that is
+    # killed while blocked must not delete the holder's lock.
+    if [ -n "$LOCKDIR" ] && [ -f "$LOCKDIR/pid" ]; then
+        holder="$(cat "$LOCKDIR/pid" 2>/dev/null || true)"
+        if [ "$holder" = "$$" ]; then
+            rm -rf "$LOCKDIR"
+        fi
+    fi
+}
+trap cleanup EXIT
+
 for tool in git php wp curl unzip jq; do
     command -v "$tool" >/dev/null 2>&1 || cannot "missing tool '$tool' (macOS: brew install wp-cli jq)"
 done
+
+# The harness directory is per USER, and every run deletes and rewrites the
+# plugin directory inside it. Two runs under one account (two checkouts, or
+# two agents) would otherwise read a directory the other is deleting.
+# PLUGIN_CHECK_HOME still overrides the path. The default stays ONE harness:
+# building it downloads WordPress, so a second directory would duplicate that
+# work instead of stopping the collision.
+#
+# The lock is a directory because mkdir is atomic on macOS and on Linux, and
+# flock(1) is not shipped on macOS. A live holder's directory is never
+# removed. A dead holder's is renamed aside first, and only the process that
+# wins the rename deletes it, so two waiters cannot both remove a lock a
+# third process has just taken.
+#
+# Contention is printed once, on stderr. The waiter blocks. Exit 2 is giving
+# up, and only after the holder is still alive 15 minutes later. That is
+# still COULD NOT MEASURE, not a pass.
+acquire_harness_lock() {
+    mkdir -p "$HOME_DIR" || cannot "cannot create $HOME_DIR"
+    LOCKDIR="$HOME_DIR/lock"
+    waited=0
+    told=0
+    empty_spins=0
+    while ! mkdir "$LOCKDIR" 2>/dev/null; do
+        holder=""
+        if [ -f "$LOCKDIR/pid" ]; then
+            holder="$(cat "$LOCKDIR/pid" 2>/dev/null || true)"
+        fi
+        if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; then
+            STALE="$LOCKDIR.stale.$$"
+            if mv "$LOCKDIR" "$STALE" 2>/dev/null; then
+                current="$(cat "$STALE/pid" 2>/dev/null || true)"
+                if [ "$current" = "$holder" ]; then
+                    echo "plugin-check: harness lock held by pid $holder is stale; taking it" >&2
+                    rm -rf "$STALE"
+                    STALE=""
+                    told=0
+                    continue
+                fi
+                # The pid changed while we looked. Put the directory back
+                # when the name is still free, then look again.
+                if [ ! -d "$LOCKDIR" ]; then
+                    mv "$STALE" "$LOCKDIR" 2>/dev/null || true
+                fi
+                rm -rf "$STALE"
+                STALE=""
+            fi
+            # mv can fail because another waiter renamed the directory first.
+            # Sleep so that miss cannot spin.
+            sleep 1
+            continue
+        fi
+        # No pid yet. A live holder writes it immediately after mkdir, so a
+        # missing pid is either that gap or a holder that died inside it.
+        # Wait a few looks before treating it as dead.
+        if [ -z "$holder" ]; then
+            empty_spins=$((empty_spins + 1))
+            if [ "$empty_spins" -ge 3 ]; then
+                STALE="$LOCKDIR.stale.$$"
+                if mv "$LOCKDIR" "$STALE" 2>/dev/null; then
+                    echo "plugin-check: harness lock at $HOME_DIR has no live pid; taking it" >&2
+                    rm -rf "$STALE"
+                    STALE=""
+                    empty_spins=0
+                    told=0
+                    continue
+                fi
+                empty_spins=0
+            fi
+        else
+            empty_spins=0
+        fi
+        if [ "$told" -eq 0 ]; then
+            echo "plugin-check: harness at $HOME_DIR is in use by pid ${holder:-unknown}; waiting" >&2
+            told=1
+        fi
+        if [ "$waited" -ge 900 ]; then
+            cannot "harness at $HOME_DIR stayed locked for ${waited}s (holder pid ${holder:-unknown}); remove $LOCKDIR if that pid is not a plugin-check run"
+        fi
+        sleep 2
+        waited=$((waited + 2))
+    done
+    echo "$$" >"$LOCKDIR/pid" || cannot "cannot record the harness lock"
+}
 
 # THE BASELINE MUST AGREE WITH ITSELF. The OWED: heading states a total and a
 # file count in PROSE; the gate reads only the data LINES. Those are two facts
@@ -169,6 +285,10 @@ check_baseline_self_consistency() {
 
 check_baseline_self_consistency || exit 1
 
+# After the baseline check, which needs no harness, and before anything that
+# reads or deletes the harness. Held until this process exits.
+acquire_harness_lock
+
 # wp-cli's bundled libraries print PHP 8.5 deprecation noise; it is not failure.
 export WP_CLI_PHP_ARGS='-d memory_limit=-1'
 wpq() { wp --path="$WPDIR" --quiet "$@" 2> >(grep -v -E 'Deprecated: Case statements|^$' >&2); }
@@ -209,11 +329,22 @@ fi
 wpq plugin is-active plugin-check || cannot "harness at $HOME_DIR is broken; delete it and rerun"
 
 # Build the shipped artifact. An archive failure is a measurement failure.
+#
+# TWO STEPS, NEVER A PIPELINE. A pipeline's status is its last command, so
+# `git archive | tar || cannot "git archive of $REF failed"` reports an
+# archive failure when tar is what failed. Observed: that message, while
+# `git archive` of the same ref exited 0. Each step names itself. Exit 2 is
+# unchanged: COULD NOT MEASURE is still not a pass.
 PLUGDIR="$WPDIR/wp-content/plugins/$PREFIX"
 rm -rf "$PLUGDIR"
 mkdir -p "$PLUGDIR" || cannot "cannot create $PLUGDIR"
-git -C "$ROOT" archive --format=tar --prefix="$PREFIX/" "$REF" | tar -x -C "$WPDIR/wp-content/plugins" \
+ARCHIVE="$(mktemp "${TMPDIR:-/tmp}/plugin-check-archive.XXXXXX")" || cannot "mktemp for the archive failed"
+git -C "$ROOT" archive --format=tar --prefix="$PREFIX/" "$REF" >"$ARCHIVE" \
     || cannot "git archive of $REF failed"
+tar -x -f "$ARCHIVE" -C "$WPDIR/wp-content/plugins" \
+    || cannot "unpacking the archive of $REF failed"
+rm -f "$ARCHIVE"
+ARCHIVE=""
 [ -f "$PLUGDIR/$PREFIX.php" ] || [ -n "$(ls "$PLUGDIR"/*.php 2>/dev/null)" ] || cannot "archive has no plugin file"
 
 if [ -n "${PLUGIN_CHECK_PLANT:-}" ]; then
@@ -227,7 +358,6 @@ fi
 OUT="$(mktemp "${TMPDIR:-/tmp}/plugin-check.XXXXXX")" || cannot "mktemp failed"
 ALL="$OUT.all"
 FOUND="$OUT.found"
-trap 'rm -f "$OUT" "$ALL" "$FOUND"' EXIT
 wpq plugin check "$PREFIX" --format=json >"$OUT" 2>/dev/null || true
 
 # Output is "FILE: <name>" lines, each followed by one JSON array of findings,

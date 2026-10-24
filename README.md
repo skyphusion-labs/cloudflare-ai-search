@@ -115,7 +115,7 @@ The test also covers the stock text builder. It checks the row wording. It check
 
 Run `tests/plugin-check.sh` before you open a pull request. It runs `wp plugin check` on the plugin as it ships. It builds that archive with `git archive`, so it checks the last commit and not your edits. Commit first.
 
-The script builds a WordPress harness with SQLite in `~/.cache/skyphusion-ai-plugin-check` the first time. It needs `wp`, `php`, `jq`, `curl` and `unzip`.
+The script builds a WordPress harness with SQLite in `~/.cache/skyphusion-ai-plugin-check` the first time. It needs `wp`, `php`, `jq`, `curl` and `unzip`. It locks that directory for the run. A second run waits, and says so, instead of deleting the plugin directory the first run is checking.
 
 It exits 0 when no error is new, 1 when a new error appears, and 2 when it could not measure. Exit 2 is never a pass.
 
