@@ -212,6 +212,11 @@ function cloudflare_ai_search_lead_answer($question)
 
 function cloudflare_ai_provider_connector_key()
 {
+    // The settings screen reports this same decision via
+    // cloudflare_ai_search_token_source(). "Set" means a non-empty string.
+    // Environment, then the constant, then the Connectors option. A change
+    // to either function has to land in both, or the screen will name a
+    // source this function does not return.
     $env = getenv('CLOUDFLARE_API_KEY');
     if (is_string($env) && $env !== '') {
         return $env;

@@ -260,6 +260,94 @@ function cloudflare_ai_search_section_connection()
     echo '</ol>';
 }
 
+/**
+ * Which source is supplying the Workers AI token.
+ *
+ * Pure. It does not read the environment, a constant, or the database. The
+ * caller passes the three values it already read. The WordPress-free harness
+ * can decide the branch without a process, the same split includes/stock.php
+ * uses for its builder.
+ *
+ * The return is a label key. It is never the value, and never anything
+ * derived from the value. No prefix, no length, no mask. An input that is
+ * not a non-empty string is absent, which is the same rule
+ * cloudflare_ai_provider_connector_key() uses. Environment, then the
+ * constant, then the Connectors option. This does not change that order.
+ *
+ *   env                     environment, option empty
+ *   env_ignores_saved       environment, option also set
+ *   constant                constant, option empty
+ *   constant_ignores_saved  constant, option also set
+ *   option                  the Connectors option
+ *   none                    nothing is set
+ *
+ * @param mixed $env      getenv('CLOUDFLARE_API_KEY'), or false when unset.
+ * @param mixed $constant The constant when it is defined, otherwise null.
+ * @param mixed $stored   The Connectors option value.
+ * @return string
+ */
+function cloudflare_ai_search_token_source($env, $constant, $stored)
+{
+    $from_env = is_string($env) && $env !== '';
+    $from_constant = is_string($constant) && $constant !== '';
+    $from_option = is_string($stored) && $stored !== '';
+    if ($from_env) {
+        return $from_option ? 'env_ignores_saved' : 'env';
+    }
+    if ($from_constant) {
+        return $from_option ? 'constant_ignores_saved' : 'constant';
+    }
+    if ($from_option) {
+        return 'option';
+    }
+    return 'none';
+}
+
+/**
+ * Read the three candidates and return only the label key.
+ *
+ * The values do not leave this function. The screen prints a sentence for
+ * the key, so the token never reaches an echo.
+ *
+ * @return string
+ */
+function cloudflare_ai_search_token_source_now()
+{
+    $env = getenv('CLOUDFLARE_API_KEY');
+    $constant = defined('CLOUDFLARE_API_KEY') ? constant('CLOUDFLARE_API_KEY') : null;
+    $stored = '';
+    if (function_exists('get_option')) {
+        $stored = get_option('connectors_ai_cloudflare_api_key', '');
+    }
+    return cloudflare_ai_search_token_source($env, $constant, $stored);
+}
+
+/**
+ * The sentence for one label key.
+ *
+ * The argument is a key, not a token. An unknown key uses the same sentence
+ * as no token, so the argument itself is never returned.
+ *
+ * @param string $key
+ * @return string Translated. The caller escapes it.
+ */
+function cloudflare_ai_search_token_source_notice($key)
+{
+    switch ($key) {
+        case 'env':
+            return __('Workers AI is using the token from the <code>CLOUDFLARE_API_KEY</code> environment variable.', 'skyphusion-ai');
+        case 'env_ignores_saved':
+            return __('Workers AI is using the token from the <code>CLOUDFLARE_API_KEY</code> environment variable. The token saved in Settings, then Connectors is not being used.', 'skyphusion-ai');
+        case 'constant':
+            return __('Workers AI is using the token from the <code>CLOUDFLARE_API_KEY</code> constant.', 'skyphusion-ai');
+        case 'constant_ignores_saved':
+            return __('Workers AI is using the token from the <code>CLOUDFLARE_API_KEY</code> constant. The token saved in Settings, then Connectors is not being used.', 'skyphusion-ai');
+        case 'option':
+            return __('Workers AI is using the token from Settings, then Connectors.', 'skyphusion-ai');
+    }
+    return __('No token is set.', 'skyphusion-ai');
+}
+
 function cloudflare_ai_search_section_workers()
 {
     $connectors = admin_url('options-connectors.php');
@@ -272,6 +360,10 @@ function cloudflare_ai_search_section_workers()
         esc_url($connectors)
     ) . '</p>';
     echo '<p>' . wp_kses(__('Leave the gateway blank to call Workers AI directly. Set a gateway id to send the same calls through AI Gateway. A model call does not replace another provider that is already configured. Call <code>using_provider(\'cloudflare\')</code> when the caller wants this one.', 'skyphusion-ai'), array('code' => array())) . '</p>';
+    echo '<p>' . wp_kses(
+        cloudflare_ai_search_token_source_notice(cloudflare_ai_search_token_source_now()),
+        array('code' => array())
+    ) . '</p>';
 }
 
 function cloudflare_ai_search_section_display()

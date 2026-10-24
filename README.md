@@ -6,7 +6,7 @@ Visitors get a search box. They can also open the keyboard search with Ctrl+K or
 
 WordPress and WooCommerce call Workers AI through the WordPress AI Client. The provider id is `cloudflare`. That provider covers text, vision, JSON, tools, images, and speech. Plugin code can also call embeddings and the public AI Search endpoint. This plugin does not take over another provider that is already set up. A caller that wants Cloudflare uses `using_provider('cloudflare')`.
 
-The search box does not send an API token. Workers AI reads the `CLOUDFLARE_API_KEY` environment variable first. It then tries a PHP constant of the same name. It falls back to the token from **Settings, then Connectors**. This plugin does not store the token.
+The search box does not send an API token. Workers AI reads the `CLOUDFLARE_API_KEY` environment variable first. It then tries a PHP constant of the same name. It falls back to the token from **Settings, then Connectors**. This plugin does not store the token. The Skyphusion AI screen says which source is in use. It says when the saved token is not being used. It does not show the token.
 
 The license is GPL-2.0-or-later. The plugin needs WordPress 6.4 and PHP 8.0. The AI Client provider registers on WordPress 7.0 and later. It needs the text and image generation interfaces to be present. Search and the embeddings helper still run without those interfaces.
 
@@ -93,7 +93,7 @@ The search box only lists pages. The chat button answers in a sentence. It uses 
 ## External services
 
 - AI Search. The browser loads the snippet from the public endpoint address you paste. The site sends a question to `{endpoint}/search` when you check the connection. `cloudflare_ai_search_query()` and the search-results switch send the question to `{endpoint}/chat/completions`. No API token is sent. Search feeds and embeds do not print the answer.
-- Workers AI and AI Gateway. Prompts, images, speech text, and embedding texts go to `api.cloudflare.com`. They go to `gateway.ai.cloudflare.com` instead when a gateway id is set. The request carries the Connectors API token as a bearer token. Account ids and gateway ids are not secrets. The plugin reads that token from `CLOUDFLARE_API_KEY` in the environment first. It then tries a PHP constant of the same name. The Connectors option `connectors_ai_cloudflare_api_key` is the fallback.
+- Workers AI and AI Gateway. Prompts, images, speech text, and embedding texts go to `api.cloudflare.com`. They go to `gateway.ai.cloudflare.com` instead when a gateway id is set. The request carries the Connectors API token as a bearer token. Account ids and gateway ids are not secrets. The plugin reads that token from `CLOUDFLARE_API_KEY` in the environment first. It then tries a PHP constant of the same name. The Connectors option `connectors_ai_cloudflare_api_key` is the fallback. The Skyphusion AI screen says which of those is in use. It does not show the token.
 
 ## Directory
 
